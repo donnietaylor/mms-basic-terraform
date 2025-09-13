@@ -1,0 +1,112 @@
+name: 'Demo 03 - Virtual Machine'
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'plan'
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+      environment:
+        description: 'Environment'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+      location:
+        description: 'Azure region'
+        required: true
+        default: 'East US'
+        type: choice
+        options:
+          - 'East US'
+          - 'West US 2'
+          - 'West Europe'
+          - 'Southeast Asia'
+      vm_size:
+        description: 'VM Size'
+        required: true
+        default: 'Standard_B2s'
+        type: choice
+        options:
+          - Standard_B1s
+          - Standard_B1ms
+          - Standard_B2s
+          - Standard_B2ms
+          - Standard_D2s_v3
+          - Standard_D4s_v3
+      admin_username:
+        description: 'Admin Username'
+        required: true
+        default: 'adminuser'
+        type: string
+
+env:
+  TF_VAR_environment: ${{ github.event.inputs.environment }}
+  TF_VAR_location: ${{ github.event.inputs.location }}
+  TF_VAR_vm_size: ${{ github.event.inputs.vm_size }}
+  TF_VAR_admin_username: ${{ github.event.inputs.admin_username }}
+
+jobs:
+  terraform:
+    name: 'Demo 03 - Terraform'
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    
+    defaults:
+      run:
+        working-directory: ./demo-03-vm/terraform
+        shell: bash
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ~1.0
+
+    - name: Azure CLI Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Terraform Init
+      run: terraform init
+
+    - name: Terraform Format Check
+      run: terraform fmt -check
+
+    - name: Terraform Validate
+      run: terraform validate
+
+    - name: Terraform Plan
+      if: github.event.inputs.action == 'plan' || github.event.inputs.action == 'apply'
+      run: terraform plan -no-color -input=false
+
+    - name: Terraform Apply
+      if: github.event.inputs.action == 'apply'
+      run: terraform apply -auto-approve -input=false
+
+    - name: Terraform Destroy
+      if: github.event.inputs.action == 'destroy'
+      run: terraform destroy -auto-approve -input=false
+
+    - name: Output Results
+      if: github.event.inputs.action == 'apply'
+      run: |
+        echo "VM Connection Information:"
+        terraform output ssh_connection_command
+        echo ""
+        echo "To get the SSH private key, run:"
+        echo "terraform output -raw ssh_private_key > private_key.pem"
+        echo "chmod 600 private_key.pem"

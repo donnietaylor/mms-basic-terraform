@@ -1,0 +1,7 @@
+# Example variable values for Demo 03 - Virtual Machine
+# Copy this file to terraform.tfvars and modify as needed
+
+location       = "East US"
+environment    = "dev"
+vm_size        = "Standard_B2s"
+admin_username = "adminuser"

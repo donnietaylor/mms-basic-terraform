@@ -1,0 +1,7 @@
+# Example variable values for Demo 02 - Storage Account
+# Copy this file to terraform.tfvars and modify as needed
+
+location                 = "East US"
+environment              = "dev"
+storage_account_tier     = "Standard"
+storage_replication_type = "LRS"

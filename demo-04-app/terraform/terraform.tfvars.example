@@ -1,0 +1,8 @@
+# Example variable values for Demo 04 - App Service
+# Copy this file to terraform.tfvars and modify as needed
+
+location             = "East US"
+environment          = "dev"
+app_service_plan_sku = "B1"
+node_version         = "18-lts"
+create_staging_slot  = false

@@ -1,0 +1,5 @@
+# Example variable values for Demo 01 - Basic Resource Group
+# Copy this file to terraform.tfvars and modify as needed
+
+location    = "East US"
+environment = "dev"
