@@ -2,7 +2,7 @@
 
 🎵 **From ClickOps to DevOps: Terraform for Azure** 🎵
 
-This repository contains three progressive demos showcasing how to transition from manual Azure resource management (ClickOps) to Infrastructure as Code (DevOps) using Terraform. Designed for Azure-experienced IT professionals ready to embrace automation.
+This repository contains four progressive demos showcasing how to transition from manual Azure resource management (ClickOps) to Infrastructure as Code (DevOps) using Terraform. Designed for Azure-experienced IT professionals ready to embrace automation.
 
 ## 🎯 Demo Overview
 
@@ -27,7 +27,7 @@ git clone https://github.com/donnietaylor/mms-basic-terraform.git
 cd mms-basic-terraform
 
 # Choose your demo
-cd demo1-basic-resources  # or demo2-vm-deployment or demo3-app-deployment
+cd demo1-basic-resources  # or demo2-vm-deployment, demo3-app-deployment, demo4-state-management
 
 # Initialize and deploy
 terraform init
