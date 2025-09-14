@@ -128,10 +128,8 @@ jobs:
       run: |
         PUBLIC_IP=$(terraform output -raw public_ip_address)
         RDP_COMMAND=$(terraform output -raw rdp_connection_command)
-        WEB_URL=$(terraform output -raw web_url)
         echo "public_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
         echo "rdp_command=$RDP_COMMAND" >> $GITHUB_OUTPUT
-        echo "web_url=$WEB_URL" >> $GITHUB_OUTPUT
       env:
         ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
         ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
@@ -149,14 +147,11 @@ jobs:
         echo "- ✅ Network Security Group" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Public IP Address" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Windows Server 2022 Virtual Machine" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ IIS Web Server" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Access Your Windows VM:" >> $GITHUB_STEP_SUMMARY
-        echo "- **Web Server**: [${{ steps.tf-outputs.outputs.web_url }}](${{ steps.tf-outputs.outputs.web_url }})" >> $GITHUB_STEP_SUMMARY
         echo "- **RDP Access**: ${{ steps.tf-outputs.outputs.rdp_command }}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
-        echo "- 🌐 Visit the web URL to see the demo page" >> $GITHUB_STEP_SUMMARY
         echo "- 🖥️ Use RDP to connect and explore the Windows Server environment" >> $GITHUB_STEP_SUMMARY
         echo "- 🎯 Try Demo 3 for a full application deployment" >> $GITHUB_STEP_SUMMARY
         echo "- 💰 **Important**: Destroy resources when done to avoid charges" >> $GITHUB_STEP_SUMMARY

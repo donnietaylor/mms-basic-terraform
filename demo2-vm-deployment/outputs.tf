@@ -22,8 +22,3 @@ output "rdp_connection_command" {
   description = "RDP connection information for the VM"
   value       = "Connect via RDP to: ${azurerm_public_ip.demo2.ip_address}:3389 with username: ${var.admin_username}"
 }
-
-output "web_url" {
-  description = "URL to access the web server"
-  value       = "http://${azurerm_public_ip.demo2.ip_address}"
-}

@@ -7,10 +7,10 @@ This demo shows how to deploy a complete Windows virtual machine infrastructure 
 - **Resource Group**: Container for all resources
 - **Virtual Network**: Custom network with 10.0.0.0/16 address space
 - **Subnet**: 10.0.1.0/24 subnet for VM placement
-- **Network Security Group**: Security rules for RDP (3389) and HTTP (80) access
+- **Network Security Group**: Security rules for RDP (3389) access
 - **Public IP**: Static public IP address
 - **Network Interface**: Connects VM to network and public IP
-- **Windows Virtual Machine**: Windows Server 2022 with IIS web server
+- **Windows Virtual Machine**: Windows Server 2022
 
 ## Prerequisites
 - Azure CLI installed and authenticated (`az login`)
@@ -75,16 +75,14 @@ Use the GitHub Actions workflow for this demo by:
 5. Choose "deploy", "plan", or "destroy" action
 
 ## After Deployment
-1. **Web Access**: Visit the public IP address in your browser to see the demo page
-2. **RDP Access**: Connect via RDP using the provided connection information
-3. **Explore**: Check out the IIS configuration and server setup
+1. **RDP Access**: Connect via RDP using the provided connection information
+2. **Explore**: Check out the Windows Server environment
 
 ## Learning Points
 - **Network Infrastructure**: Understanding VNets, subnets, and security groups
-- **VM Configuration**: Automated Windows setup using VM extensions
+- **VM Configuration**: Basic Windows VM setup
 - **Security**: Password authentication (simpler than SSH keys for demos)
 - **Infrastructure Dependencies**: How Terraform manages resource relationships
-- **Automation**: Software installation and configuration as part of deployment
 
 ## Security Considerations
 - Use strong passwords that meet Azure complexity requirements
@@ -99,6 +97,4 @@ Use the GitHub Actions workflow for this demo by:
 
 ## Next Steps
 - Try connecting via RDP and exploring the Windows Server environment
-- Modify the PowerShell script to install different software
 - Proceed to Demo 3 for a complete application deployment
-- Explore Azure VM extensions for additional configuration options

@@ -82,18 +82,6 @@ resource "azurerm_network_security_group" "demo2" {
     destination_address_prefix = "*"
   }
 
-  security_rule {
-    name                       = "HTTP"
-    priority                   = 1002
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "80"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
-
   tags = {
     Environment = "Demo"
     Conference  = "MMSMusic"
@@ -159,22 +147,3 @@ resource "azurerm_windows_virtual_machine" "demo2" {
   }
 }
 
-# Windows VM Extension to install IIS and setup demo page
-resource "azurerm_virtual_machine_extension" "demo2" {
-  name                       = "install-iis"
-  virtual_machine_id         = azurerm_windows_virtual_machine.demo2.id
-  publisher                  = "Microsoft.Compute"
-  type                       = "CustomScriptExtension"
-  type_handler_version       = "1.10"
-  auto_upgrade_minor_version = true
-
-  protected_settings = jsonencode({
-    "script" = base64encode(file("${path.module}/setup-iis.ps1"))
-  })
-
-  tags = {
-    Environment = "Demo"
-    Conference  = "MMSMusic"
-    Demo        = "2-VM-Deployment"
-  }
-}
