@@ -1,4 +1,4 @@
-# Demo 2: VM Deployment - Example Variables  
+# Demo 2: Windows VM Deployment - Example Variables  
 # Copy this file to terraform.tfvars and customize the values
 
 # Resource group name
@@ -16,7 +16,6 @@ vm_size = "Standard_B2s"
 # Admin username for the VM
 admin_username = "azureuser"
 
-# SSH public key for VM access (paste your public key here)
-# Generate with: ssh-keygen -t rsa -b 4096 -f ~/.ssh/demo2_key
-# Then use: cat ~/.ssh/demo2_key.pub
-ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC... your-public-key-here"
+# Admin password for the VM (must meet Azure complexity requirements)
+# Requirements: 12-123 characters, 3 of 4 character types (uppercase, lowercase, numbers, special chars)
+admin_password = "YourSecurePassword123!"
