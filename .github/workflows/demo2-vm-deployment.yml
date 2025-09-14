@@ -69,7 +69,6 @@ jobs:
       run: |
         if [ -n "${{ github.event.inputs.admin_password }}" ]; then
           terraform plan \
-            -var="admin_password=${{ github.event.inputs.admin_password }}" \
             -var="vm_size=${{ github.event.inputs.vm_size }}" \
             -out=tfplan
         else
@@ -83,13 +82,13 @@ jobs:
         ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
         ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
         ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+        TF_VAR_admin_password: ${{ github.event.inputs.admin_password }}
 
     - name: Terraform Apply
       if: github.event.inputs.action == 'deploy'
       run: |
         if [ -n "${{ github.event.inputs.admin_password }}" ]; then
           terraform apply -auto-approve \
-            -var="admin_password=${{ github.event.inputs.admin_password }}" \
             -var="vm_size=${{ github.event.inputs.vm_size }}"
         else
           echo "Admin password is required for Windows VM deployment"
@@ -102,13 +101,13 @@ jobs:
         ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
         ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
         ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+        TF_VAR_admin_password: ${{ github.event.inputs.admin_password }}
 
     - name: Terraform Destroy
       if: github.event.inputs.action == 'destroy'
       run: |
         if [ -n "${{ github.event.inputs.admin_password }}" ]; then
           terraform destroy -auto-approve \
-            -var="admin_password=${{ github.event.inputs.admin_password }}" \
             -var="vm_size=${{ github.event.inputs.vm_size }}"
         else
           echo "Admin password is required for destroying Windows VM deployment"
@@ -121,6 +120,7 @@ jobs:
         ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
         ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
         ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+        TF_VAR_admin_password: ${{ github.event.inputs.admin_password }}
 
     - name: Get Terraform Outputs
       if: github.event.inputs.action == 'deploy'
