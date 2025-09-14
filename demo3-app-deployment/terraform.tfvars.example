@@ -5,7 +5,7 @@
 resource_group_name = "rg-mms-demo3-app"
 
 # Azure region
-location = "East US"
+location = "East US 2"
 
 # App Service SKU (F1=Free, B1=Basic, S1=Standard, P1v2=Premium)
 app_service_sku = "F1"
