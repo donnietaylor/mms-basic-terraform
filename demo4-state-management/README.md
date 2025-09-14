@@ -5,6 +5,8 @@ This demo focuses on one of Terraform's most critical concepts: **state manageme
 
 **🎯 This demo now uses remote state by default**, making it production-ready and suitable for GitHub Workflows and team collaboration.
 
+**✨ New: Automatic Import Functionality** - This demo now includes import blocks to automatically handle existing resources, preventing state conflicts when resources already exist in Azure.
+
 ## What This Demo Deploys
 - **Resource Group**: Container for all demo resources and state storage  
 - **Storage Account**: Demonstrates remote state backend best practices
@@ -62,6 +64,39 @@ terraform {
 - ✅ **Encrypted** storage with Azure security
 - ✅ **Versioned** state with blob versioning
 - ✅ **Backup** and recovery capabilities
+- ✅ **Import blocks** handle existing resources automatically
+
+## Resource Import Functionality
+
+This demo includes **import blocks** that automatically handle existing Azure resources. If you encounter errors like "resource already exists", the import blocks will bring those resources under Terraform management without recreating them.
+
+### Import Blocks Included:
+```hcl
+# Imports existing resource group
+import {
+  to = azurerm_resource_group.demo4
+  id = "/subscriptions/19381250-e2a4-43b0-b620-663c2a3da3c4/resourceGroups/rg-mms-demo4-state"
+}
+
+# Imports existing storage account
+import {
+  to = azurerm_storage_account.state_storage
+  id = "/subscriptions/19381250-e2a4-43b0-b620-663c2a3da3c4/resourceGroups/rg-mms-demo4-state/providers/Microsoft.Storage/storageAccounts/statemmsdemo4state"
+}
+
+# Imports existing storage container
+import {
+  to = azurerm_storage_container.state_container
+  id = "https://statemmsdemo4state.blob.core.windows.net/tfstate"
+}
+```
+
+**Benefits of Import Blocks:**
+- ✅ **Resolves** "resource already exists" errors
+- ✅ **Preserves** existing resource configuration
+- ✅ **Brings** resources under Terraform management
+- ✅ **Prevents** accidental resource recreation
+- ✅ **Enables** team collaboration on existing infrastructure
 
 ## How to Run This Demo
 
@@ -182,6 +217,20 @@ terraform output remote_state_setup_instructions
 - 🚫 **Never store state in public repositories**
 
 ## Troubleshooting
+
+### Resource Already Exists Errors
+If you encounter "resource already exists" errors, the import blocks should handle this automatically. However, if you need to add additional import blocks:
+
+```bash
+# Find the resource ID in Azure
+az resource show --name <resource-name> --resource-group <rg-name> --resource-type <resource-type>
+
+# Add import block to main.tf
+import {
+  to = <terraform_resource_name>
+  id = "<azure_resource_id>"
+}
+```
 
 ### State Lock Issues
 ```bash

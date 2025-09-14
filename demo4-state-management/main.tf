@@ -35,6 +35,12 @@ resource "random_string" "suffix" {
   upper   = false
 }
 
+# Import block for existing resource group (to resolve state conflicts)
+import {
+  to = azurerm_resource_group.demo4
+  id = "/subscriptions/19381250-e2a4-43b0-b620-663c2a3da3c4/resourceGroups/rg-mms-demo4-state"
+}
+
 # Resource Group - This will store our state and contain our demo resources
 resource "azurerm_resource_group" "demo4" {
   name     = var.resource_group_name
@@ -46,6 +52,12 @@ resource "azurerm_resource_group" "demo4" {
     Demo        = "4-State-Management"
     Purpose     = "State-Demo"
   }
+}
+
+# Import block for existing storage account (to resolve state conflicts)
+import {
+  to = azurerm_storage_account.state_storage
+  id = "/subscriptions/19381250-e2a4-43b0-b620-663c2a3da3c4/resourceGroups/rg-mms-demo4-state/providers/Microsoft.Storage/storageAccounts/statemmsdemo4state"
 }
 
 # Storage Account for remote state backend (demonstrates best practice)
@@ -68,6 +80,12 @@ resource "azurerm_storage_account" "state_storage" {
     Demo        = "4-State-Management"
     Purpose     = "Remote-State-Storage"
   }
+}
+
+# Import block for existing storage container (to resolve state conflicts)
+import {
+  to = azurerm_storage_container.state_container
+  id = "https://statemmsdemo4state.blob.core.windows.net/tfstate"
 }
 
 # Storage Container for Terraform state files
