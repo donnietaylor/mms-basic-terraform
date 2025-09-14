@@ -48,7 +48,23 @@ jobs:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
     - name: Terraform Init
-      run: terraform init
+      run: |
+        # Check if we need to bootstrap (first time deployment)
+        # We try to initialize with remote backend first, and fall back to local if storage doesn't exist
+        echo "Attempting to initialize with remote backend..."
+        
+        if terraform init; then
+          echo "Successfully initialized with remote backend"
+          echo "BACKEND_TYPE=remote" >> $GITHUB_ENV
+        else
+          echo "Remote backend not available, initializing for bootstrap..."
+          # Remove backend configuration temporarily for bootstrap
+          cp main.tf main.tf.backup
+          sed '/backend "azurerm"/,/}/d' main.tf.backup > main.tf
+          terraform init
+          echo "BACKEND_TYPE=local" >> $GITHUB_ENV
+          echo "This is a bootstrap run - will create storage account and migrate to remote state"
+        fi
 
     - name: Terraform Format Check
       run: terraform fmt -check
@@ -79,6 +95,25 @@ jobs:
         ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
         ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
 
+    - name: Migrate to Remote State
+      if: github.event.inputs.action == 'deploy' && env.BACKEND_TYPE == 'local'
+      run: |
+        echo "Bootstrap deployment complete. Migrating to remote state..."
+        
+        # Restore original main.tf with backend configuration
+        mv main.tf.backup main.tf
+        
+        # Migrate state to remote backend
+        echo "yes" | terraform init -migrate-state
+        
+        echo "Successfully migrated to remote state backend!"
+        echo "Future runs will use remote state automatically."
+      env:
+        ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+
     - name: Terraform Destroy
       if: github.event.inputs.action == 'destroy'
       run: |
@@ -103,9 +138,20 @@ jobs:
         echo "- Virtual Network (supporting infrastructure)" >> $GITHUB_STEP_SUMMARY
         echo "- Application Insights (sensitive data example)" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### State Management:" >> $GITHUB_STEP_SUMMARY
+        if [ "$BACKEND_TYPE" == "local" ]; then
+          echo "- ✅ **Remote state backend configured and active**" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ State migrated from local to Azure Storage Account" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Future runs will use remote state automatically" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- ✅ **Using remote state backend (Azure Storage Account)**" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ State is shared and persistent across workflow runs" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ State locking and versioning enabled" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Learning Objectives:" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Understand Terraform state concepts" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ Learn remote state backend setup" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Experience remote state backend in practice" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Practice configuration drift detection" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Experience state security best practices" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
@@ -113,10 +159,10 @@ jobs:
         echo "1. Go to Azure Portal → Resource Groups → ${{ github.event.inputs.resource_group_name }}" >> $GITHUB_STEP_SUMMARY
         echo "2. Open Network Security Group: nsg-demo4-drift" >> $GITHUB_STEP_SUMMARY
         echo "3. Modify the security rules manually" >> $GITHUB_STEP_SUMMARY
-        echo "4. Run 'terraform plan' locally to see drift detection" >> $GITHUB_STEP_SUMMARY
-        echo "5. Run 'terraform apply' to fix the drift" >> $GITHUB_STEP_SUMMARY
+        echo "4. Run this workflow again with 'plan' action to see drift detection" >> $GITHUB_STEP_SUMMARY
+        echo "5. Run with 'deploy' action to fix the drift" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Remote State Setup:" >> $GITHUB_STEP_SUMMARY
+        echo "### Remote State Configuration:" >> $GITHUB_STEP_SUMMARY
         terraform output -raw remote_state_setup_instructions | sed 's/^/    /' >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "**Remember to destroy resources when done to avoid charges!**" >> $GITHUB_STEP_SUMMARY
