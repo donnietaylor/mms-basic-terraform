@@ -6,10 +6,10 @@ This is the most comprehensive demo, showcasing a complete production-ready appl
 ## What This Demo Deploys
 - **Resource Group**: Container for all application resources
 - **App Service Plan**: Hosting plan for the web application (configurable SKU)
-- **App Service**: Linux-based web app with Node.js runtime
+- **App Service**: Windows-based web app with .NET runtime
 - **Staging Slot**: Separate staging environment for testing
-- **PostgreSQL Flexible Server**: Managed database service
-- **PostgreSQL Database**: Application database
+- **Azure SQL Database**: Managed database service
+- **SQL Database**: Application database
 - **Key Vault**: Secure storage for connection strings and secrets
 - **Application Insights**: Application performance monitoring and logging
 - **Managed Identity**: Secure authentication between services
@@ -28,7 +28,7 @@ Creating a production application manually requires:
 2. Create App Service Plan
 3. Create App Service
 4. Configure runtime settings
-5. Create PostgreSQL server
+5. Create SQL server
 6. Configure firewall rules
 7. Create database
 8. Create Key Vault
@@ -95,7 +95,7 @@ Use the GitHub Actions workflow for this demo by:
 1. **Production App**: Visit the main App Service URL
 2. **Staging Environment**: Test features in the staging slot
 3. **Monitoring**: Check Application Insights for metrics
-4. **Database**: Connect to PostgreSQL using provided FQDN
+4. **Database**: Connect to SQL database using provided FQDN
 5. **Secrets**: Verify Key Vault contains database connection string
 
 ## Production Considerations
@@ -127,7 +127,7 @@ Use the GitHub Actions workflow for this demo by:
 - **Slot Swapping**: Use Azure CLI or Portal for production deployment
 
 ## Next Steps
-- Deploy your own Node.js application code
+- Deploy your own .NET application code
 - Set up CI/CD pipeline using GitHub Actions
 - Configure custom domain and SSL certificate
 - Implement Azure Active Directory authentication

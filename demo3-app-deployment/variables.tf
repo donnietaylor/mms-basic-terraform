@@ -21,13 +21,13 @@ variable "app_service_sku" {
 }
 
 variable "db_admin_username" {
-  description = "Administrator username for PostgreSQL server"
+  description = "Administrator username for SQL server"
   type        = string
-  default     = "psqladmin"
+  default     = "sqladmin"
 }
 
 variable "db_admin_password" {
-  description = "Administrator password for PostgreSQL server"
+  description = "Administrator password for SQL server"
   type        = string
   sensitive   = true
   validation {
