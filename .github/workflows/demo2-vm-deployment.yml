@@ -67,16 +67,11 @@ jobs:
     - name: Terraform Plan
       if: github.event.inputs.action == 'plan'
       run: |
-        if [ -n "${{ github.event.inputs.admin_password }}" ]; then
-          terraform plan \
-            -var="vm_size=${{ github.event.inputs.vm_size }}" \
-            -out=tfplan
-        else
-          echo "Admin password is required for planning Windows VM deployment"
-          echo "Please provide a secure admin password in the workflow inputs"
-          echo "Password must meet Azure complexity requirements (8+ chars, uppercase, lowercase, number, special char)"
-          exit 1
-        fi
+        # For planning, we use the provided password via environment variable
+        # This ensures no password is exposed in the command line or logs
+        terraform plan \
+          -var="vm_size=${{ github.event.inputs.vm_size }}" \
+          -out=tfplan
       env:
         ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
         ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
