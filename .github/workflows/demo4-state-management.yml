@@ -50,7 +50,7 @@ jobs:
     - name: Terraform Init
       run: |
         # Check if we need to bootstrap (first time deployment)
-        # We try to initialize with remote backend first, and fall back to local if storage doesn't exist
+        # Try to initialize with remote backend first, fall back to local if storage doesn't exist
         echo "Attempting to initialize with remote backend..."
         
         if terraform init; then
