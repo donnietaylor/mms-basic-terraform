@@ -1,7 +1,7 @@
 # Demo 3: Full Application Deployment
 # This demo deploys a complete web application with:
 # - App Service Plan and App Service
-# - Azure Database for PostgreSQL
+# - Azure SQL Database
 # - Application Insights for monitoring
 # - Key Vault for secrets management
 
@@ -54,7 +54,7 @@ resource "azurerm_service_plan" "demo3" {
   name                = "asp-demo3-${random_string.suffix.result}"
   location            = azurerm_resource_group.demo3.location
   resource_group_name = azurerm_resource_group.demo3.name
-  os_type             = "Linux"
+  os_type             = "Windows"
   sku_name            = var.app_service_sku
 
   tags = {
@@ -65,7 +65,7 @@ resource "azurerm_service_plan" "demo3" {
 }
 
 # App Service
-resource "azurerm_linux_web_app" "demo3" {
+resource "azurerm_windows_web_app" "demo3" {
   name                = "app-demo3-mms-${random_string.suffix.result}"
   location            = azurerm_resource_group.demo3.location
   resource_group_name = azurerm_resource_group.demo3.name
@@ -79,12 +79,11 @@ resource "azurerm_linux_web_app" "demo3" {
     always_on = false # Set to false for free tier
 
     application_stack {
-      node_version = "18-lts"
+      dotnet_version = "v6.0"
     }
   }
 
   app_settings = {
-    "WEBSITE_NODE_DEFAULT_VERSION"   = "18.17.0"
     "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.demo3.instrumentation_key
     "CONFERENCE_NAME"                = "MMS Music Conference"
     "DEMO_VERSION"                   = "3.0"
@@ -111,44 +110,40 @@ resource "azurerm_application_insights" "demo3" {
   }
 }
 
-# PostgreSQL Flexible Server
-resource "azurerm_postgresql_flexible_server" "demo3" {
-  name                   = "psql-demo3-${random_string.suffix.result}"
-  resource_group_name    = azurerm_resource_group.demo3.name
-  location               = azurerm_resource_group.demo3.location
-  version                = "13"
-  administrator_login    = var.db_admin_username
-  administrator_password = var.db_admin_password
-  zone                   = "1"
-  storage_mb             = 32768
-  sku_name               = "B_Standard_B1ms"
+# Azure SQL Server
+resource "azurerm_mssql_server" "demo3" {
+  name                         = "sql-demo3-${random_string.suffix.result}"
+  resource_group_name          = azurerm_resource_group.demo3.name
+  location                     = azurerm_resource_group.demo3.location
+  version                      = "12.0"
+  administrator_login          = var.db_admin_username
+  administrator_login_password = var.db_admin_password
 
   tags = {
     Environment = "Demo"
     Conference  = "MMSMusic"
     Demo        = "3-App-Deployment"
   }
+}
 
-  lifecycle {
-    ignore_changes = [
-      zone,
-      high_availability.0.standby_availability_zone
-    ]
+# Azure SQL Database
+resource "azurerm_mssql_database" "demo3" {
+  name      = "musicdemo"
+  server_id = azurerm_mssql_server.demo3.id
+  collation = "SQL_Latin1_General_CP1_CI_AS"
+  sku_name  = "Basic"
+
+  tags = {
+    Environment = "Demo"
+    Conference  = "MMSMusic"
+    Demo        = "3-App-Deployment"
   }
 }
 
-# PostgreSQL Database
-resource "azurerm_postgresql_flexible_server_database" "demo3" {
-  name      = "musicdemo"
-  server_id = azurerm_postgresql_flexible_server.demo3.id
-  collation = "en_US.utf8"
-  charset   = "utf8"
-}
-
-# PostgreSQL Firewall Rule to allow Azure services
-resource "azurerm_postgresql_flexible_server_firewall_rule" "demo3_azure" {
+# SQL Server Firewall Rule to allow Azure services
+resource "azurerm_mssql_firewall_rule" "demo3_azure" {
   name             = "AllowAzureServices"
-  server_id        = azurerm_postgresql_flexible_server.demo3.id
+  server_id        = azurerm_mssql_server.demo3.id
   start_ip_address = "0.0.0.0"
   end_ip_address   = "0.0.0.0"
 }
@@ -193,7 +188,7 @@ resource "azurerm_key_vault" "demo3" {
 resource "azurerm_key_vault_access_policy" "app_service" {
   key_vault_id = azurerm_key_vault.demo3.id
   tenant_id    = data.azurerm_client_config.current.tenant_id
-  object_id    = azurerm_linux_web_app.demo3.identity[0].principal_id
+  object_id    = azurerm_windows_web_app.demo3.identity[0].principal_id
 
   secret_permissions = [
     "Get", "List"
@@ -203,26 +198,25 @@ resource "azurerm_key_vault_access_policy" "app_service" {
 # Store database connection string in Key Vault
 resource "azurerm_key_vault_secret" "database_url" {
   name         = "database-url"
-  value        = "postgresql://${var.db_admin_username}:${var.db_admin_password}@${azurerm_postgresql_flexible_server.demo3.fqdn}:5432/${azurerm_postgresql_flexible_server_database.demo3.name}?sslmode=require"
+  value        = "Server=tcp:${azurerm_mssql_server.demo3.fully_qualified_domain_name},1433;Initial Catalog=${azurerm_mssql_database.demo3.name};Persist Security Info=False;User ID=${var.db_admin_username};Password=${var.db_admin_password};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
   key_vault_id = azurerm_key_vault.demo3.id
 
   depends_on = [azurerm_key_vault_access_policy.app_service]
 }
 
 # Staging slot for the App Service
-resource "azurerm_linux_web_app_slot" "demo3" {
+resource "azurerm_windows_web_app_slot" "demo3" {
   name           = "staging"
-  app_service_id = azurerm_linux_web_app.demo3.id
+  app_service_id = azurerm_windows_web_app.demo3.id
 
   site_config {
     application_stack {
-      node_version = "18-lts"
+      dotnet_version = "v6.0"
     }
   }
 
   app_settings = {
-    "WEBSITE_NODE_DEFAULT_VERSION" = "18.17.0"
-    "CONFERENCE_NAME"              = "MMS Music Conference - Staging"
-    "DEMO_VERSION"                 = "3.0-staging"
+    "CONFERENCE_NAME" = "MMS Music Conference - Staging"
+    "DEMO_VERSION"    = "3.0-staging"
   }
 }

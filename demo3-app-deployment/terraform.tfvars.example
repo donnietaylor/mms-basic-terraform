@@ -11,7 +11,7 @@ location = "East US 2"
 app_service_sku = "F1"
 
 # Database admin username
-db_admin_username = "psqladmin"
+db_admin_username = "sqladmin"
 
 # Database admin password (minimum 8 characters, include uppercase, lowercase, numbers)
 # IMPORTANT: Use a secure password and do not commit this file to version control
