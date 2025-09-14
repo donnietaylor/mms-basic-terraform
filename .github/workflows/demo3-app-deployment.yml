@@ -71,8 +71,6 @@ jobs:
     - name: Terraform Plan
       if: github.event.inputs.action == 'plan'
       run: |
-        # For planning, we use the provided password via environment variable
-        # This ensures no password is exposed in the command line or logs
         terraform plan \
           -var="app_service_sku=${{ github.event.inputs.app_service_sku }}" \
           -out=tfplan
@@ -86,14 +84,8 @@ jobs:
     - name: Terraform Apply
       if: github.event.inputs.action == 'deploy'
       run: |
-        if [ -n "${{ github.event.inputs.db_admin_password }}" ]; then
-          terraform apply -auto-approve \
-            -var="app_service_sku=${{ github.event.inputs.app_service_sku }}"
-        else
-          echo "Database admin password is required for deployment"
-          echo "Please provide a secure password (minimum 8 characters)"
-          exit 1
-        fi
+        terraform apply -auto-approve \
+          -var="app_service_sku=${{ github.event.inputs.app_service_sku }}"
       env:
         ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
         ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
@@ -104,15 +96,9 @@ jobs:
     - name: Terraform Destroy
       if: github.event.inputs.action == 'destroy'
       run: |
-        if [ -n "${{ github.event.inputs.db_admin_password }}" ]; then
-          terraform destroy -auto-approve \
-            -var="app_service_sku=${{ github.event.inputs.app_service_sku }}"
-        else
-          echo "Database admin password is required for destroying resources"
-          echo "Please provide the same password used for deployment"
-          exit 1
-        fi
-      env:
+        terraform destroy -auto-approve \
+          -var="app_service_sku=${{ github.event.inputs.app_service_sku }}"
+        env:
         ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
         ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
         ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
