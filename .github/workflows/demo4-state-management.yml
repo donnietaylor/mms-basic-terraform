@@ -95,25 +95,6 @@ jobs:
         ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
         ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
 
-    - name: Migrate to Remote State
-      if: github.event.inputs.action == 'deploy' && env.BACKEND_TYPE == 'local'
-      run: |
-        echo "Bootstrap deployment complete. Migrating to remote state..."
-        
-        # Restore original main.tf with backend configuration
-        mv main.tf.backup main.tf
-        
-        # Migrate state to remote backend
-        echo "yes" | terraform init -migrate-state
-        
-        echo "Successfully migrated to remote state backend!"
-        echo "Future runs will use remote state automatically."
-      env:
-        ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-        ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-
     - name: Terraform Destroy
       if: github.event.inputs.action == 'destroy'
       run: |
