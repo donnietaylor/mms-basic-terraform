@@ -168,12 +168,9 @@ resource "azurerm_virtual_machine_extension" "demo2" {
   type_handler_version       = "1.10"
   auto_upgrade_minor_version = true
 
-  settings = jsonencode({
-    "timestamp" = timestamp()
-  })
-
   protected_settings = jsonencode({
-    "script" = base64encode(file("${path.module}/setup-iis.ps1"))
+    "commandToExecute" = "powershell -ExecutionPolicy Unrestricted -File setup-iis.ps1",
+    "script"           = base64encode(file("${path.module}/setup-iis.ps1"))
   })
 
   tags = {
