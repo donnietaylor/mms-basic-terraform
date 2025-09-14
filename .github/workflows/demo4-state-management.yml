@@ -135,6 +135,7 @@ jobs:
         echo "- ✅ Experience remote state backend in practice" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Practice configuration drift detection" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Experience state security best practices" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Learn import blocks for existing resources" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Next Steps for Drift Demo:" >> $GITHUB_STEP_SUMMARY
         echo "1. Go to Azure Portal → Resource Groups → ${{ github.event.inputs.resource_group_name }}" >> $GITHUB_STEP_SUMMARY

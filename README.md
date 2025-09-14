@@ -11,7 +11,7 @@ This repository contains four progressive demos showcasing how to transition fro
 | **[Demo 1](./demo1-basic-resources/)** | 🟢 Basic | Resource Group, Storage Account | Introduction to IaC | ~2 mins |
 | **[Demo 2](./demo2-vm-deployment/)** | 🟡 Intermediate | VM, VNet, NSG, Public IP | Infrastructure deployment | ~5 mins |
 | **[Demo 3](./demo3-app-deployment/)** | 🔴 Advanced | App Service, Database, Key Vault, Monitoring | Enterprise application | ~8 mins |
-| **[Demo 4](./demo4-state-management/)** | 🟡 Intermediate | State Storage, NSG, VNet, App Insights | State management & drift | ~4 mins |
+| **[Demo 4](./demo4-state-management/)** | 🟡 Intermediate | State Storage, NSG, VNet, App Insights | State management, drift & import | ~4 mins |
 
 ## 🚀 Quick Start
 
