@@ -1,0 +1,122 @@
+name: 'Demo 4: State Management'
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'plan'
+        type: choice
+        options:
+        - plan
+        - deploy
+        - destroy
+      resource_group_name:
+        description: 'Resource Group Name'
+        required: false
+        default: 'rg-mms-demo4-state'
+        type: string
+
+env:
+  TF_VERSION: '1.5.0'
+  WORKING_DIRECTORY: './demo4-state-management'
+
+jobs:
+  terraform:
+    name: 'Demo 4 - State Management'
+    runs-on: ubuntu-latest
+    environment: production
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Terraform Init
+      run: terraform init
+
+    - name: Terraform Format Check
+      run: terraform fmt -check
+
+    - name: Terraform Validate
+      run: terraform validate
+
+    - name: Terraform Plan
+      if: github.event.inputs.action == 'plan'
+      run: |
+        terraform plan \
+          -var="resource_group_name=${{ github.event.inputs.resource_group_name }}" \
+          -out=tfplan
+      env:
+        ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+
+    - name: Terraform Apply
+      if: github.event.inputs.action == 'deploy'
+      run: |
+        terraform apply -auto-approve \
+          -var="resource_group_name=${{ github.event.inputs.resource_group_name }}"
+      env:
+        ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+
+    - name: Terraform Destroy
+      if: github.event.inputs.action == 'destroy'
+      run: |
+        terraform destroy -auto-approve \
+          -var="resource_group_name=${{ github.event.inputs.resource_group_name }}"
+      env:
+        ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+
+    - name: Display State Information
+      if: github.event.inputs.action == 'deploy'
+      run: |
+        echo "## Demo 4 Deployment Complete! 🎉" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Resources Created:" >> $GITHUB_STEP_SUMMARY
+        echo "- Resource Group (for state storage)" >> $GITHUB_STEP_SUMMARY
+        echo "- Storage Account (remote state backend)" >> $GITHUB_STEP_SUMMARY
+        echo "- Storage Container (state file storage)" >> $GITHUB_STEP_SUMMARY
+        echo "- Network Security Group (drift demo target)" >> $GITHUB_STEP_SUMMARY
+        echo "- Virtual Network (supporting infrastructure)" >> $GITHUB_STEP_SUMMARY
+        echo "- Application Insights (sensitive data example)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Learning Objectives:" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Understand Terraform state concepts" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Learn remote state backend setup" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Practice configuration drift detection" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Experience state security best practices" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Next Steps for Drift Demo:" >> $GITHUB_STEP_SUMMARY
+        echo "1. Go to Azure Portal → Resource Groups → ${{ github.event.inputs.resource_group_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "2. Open Network Security Group: nsg-demo4-drift" >> $GITHUB_STEP_SUMMARY
+        echo "3. Modify the security rules manually" >> $GITHUB_STEP_SUMMARY
+        echo "4. Run 'terraform plan' locally to see drift detection" >> $GITHUB_STEP_SUMMARY
+        echo "5. Run 'terraform apply' to fix the drift" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Remote State Setup:" >> $GITHUB_STEP_SUMMARY
+        terraform output -raw remote_state_setup_instructions | sed 's/^/    /' >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Remember to destroy resources when done to avoid charges!**" >> $GITHUB_STEP_SUMMARY

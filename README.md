@@ -11,6 +11,7 @@ This repository contains three progressive demos showcasing how to transition fr
 | **[Demo 1](./demo1-basic-resources/)** | 🟢 Basic | Resource Group, Storage Account | Introduction to IaC | ~2 mins |
 | **[Demo 2](./demo2-vm-deployment/)** | 🟡 Intermediate | VM, VNet, NSG, Public IP | Infrastructure deployment | ~5 mins |
 | **[Demo 3](./demo3-app-deployment/)** | 🔴 Advanced | App Service, Database, Key Vault, Monitoring | Enterprise application | ~8 mins |
+| **[Demo 4](./demo4-state-management/)** | 🟡 Intermediate | State Storage, NSG, VNet, App Insights | State management & drift | ~4 mins |
 
 ## 🚀 Quick Start
 
@@ -63,6 +64,12 @@ terraform destroy
 - **What you'll learn**: PaaS services, secrets management, monitoring, staging
 - **What you'll deploy**: Production-ready web application with database
 - **Key concepts**: Security best practices, DevOps workflows, scalability
+
+### Demo 4: State Management
+**Perfect for**: Understanding Terraform's core concepts
+- **What you'll learn**: State storage, drift detection, remote backends, state security
+- **What you'll deploy**: State infrastructure with drift demonstration resources
+- **Key concepts**: Remote state, configuration drift, state locking, sensitive data handling
 
 ## 🔧 Required Azure Secrets (for GitHub Actions)
 
@@ -135,6 +142,16 @@ Resource Group
 └── Application Insights
 ```
 
+### Demo 4: State Management Pattern
+```
+Resource Group (State Storage)
+├── Storage Account (Remote State Backend)
+│   └── Blob Container (tfstate files)
+├── Network Security Group (Drift Demo)
+├── Virtual Network (Supporting Infrastructure)
+└── Application Insights (Sensitive Data Demo)
+```
+
 ## 💡 Key Learning Outcomes
 
 After completing these demos, you'll understand:
@@ -142,6 +159,8 @@ After completing these demos, you'll understand:
 - ✅ **Infrastructure as Code fundamentals**
 - ✅ **Terraform syntax and best practices**  
 - ✅ **Azure resource relationships and dependencies**
+- ✅ **State management and remote backends**
+- ✅ **Configuration drift detection and remediation**
 - ✅ **Security best practices (Managed Identity, Key Vault)**
 - ✅ **Monitoring and observability setup**
 - ✅ **DevOps workflow integration**
@@ -149,13 +168,14 @@ After completing these demos, you'll understand:
 
 ## 🎤 Conference Presentation Notes
 
-These demos support a **45-60 minute presentation** with the following flow:
+These demos support a **60-75 minute presentation** with the following flow:
 
 1. **Introduction** (5 mins): ClickOps vs DevOps overview
 2. **Demo 1** (10 mins): Basic concepts and first deployment
 3. **Demo 2** (15 mins): Complex infrastructure and networking
 4. **Demo 3** (20 mins): Enterprise application with monitoring
-5. **Q&A** (10 mins): Audience questions and discussion
+5. **Demo 4** (10 mins): State management and drift detection
+6. **Q&A** (10-15 mins): Audience questions and discussion
 
 ### Presenter Tips
 - Emphasize **time savings** and **consistency** benefits

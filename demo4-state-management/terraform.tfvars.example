@@ -1,0 +1,11 @@
+# Copy this file to terraform.tfvars and customize as needed
+# terraform.tfvars is ignored by .gitignore to prevent accidentally committing sensitive data
+
+# Basic Configuration
+resource_group_name = "rg-mms-demo4-state"
+location           = "East US"
+
+# Alternative regions you might want to use:
+# location = "West US 2"
+# location = "East US 2" 
+# location = "Central US"
