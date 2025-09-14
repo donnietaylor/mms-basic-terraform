@@ -1,123 +1,90 @@
 # Demo 2 VM Extension Troubleshooting
 
-## Issue Fixed: VMExtensionProvisioningError
+## Issue Fixed: VMExtensionProvisioningError - Script File Not Found
 
 ### Problem Description
-The demo2 VM deployment was failing with a `VMExtensionProvisioningError` during the IIS installation process. The error indicated:
-- Non-zero exit code (1) from PowerShell script execution
-- CLIXML error output suggesting script execution problems
-- VM extension failing during the IIS setup phase
+The demo2 VM deployment was failing with a `VMExtensionProvisioningError` indicating:
+- Error message: "The argument 'setup-iis.ps1' to the -File parameter does not exist"
+- Non-zero exit code of '-196608'
+- PowerShell complaining that the script file could not be found
 
 ### Root Cause Analysis
-The original PowerShell script (`setup-iis.ps1`) lacked proper error handling and validation:
+The issue was in the Azure Custom Script Extension configuration in `main.tf`:
 
-1. **No error checking** for `Install-WindowsFeature` command success
-2. **Missing validation** for service startup operations
-3. **No try-catch blocks** around file operations
-4. **Limited logging** for troubleshooting failures
-5. **Suboptimal script execution** method in the VM extension
+**Problematic Configuration:**
+```hcl
+protected_settings = jsonencode({
+  "commandToExecute" = "powershell -ExecutionPolicy Unrestricted -File setup-iis.ps1",
+  "script"           = base64encode(file("${path.module}/setup-iis.ps1"))
+})
+```
+
+**The Problem:** When using the `script` parameter with base64-encoded content, the script is uploaded to Azure but not saved as a named file on the VM filesystem. The `commandToExecute` was trying to reference `setup-iis.ps1` as if it were a file, but it doesn't exist in that location.
 
 ### Solution Implemented
 
-#### 1. Enhanced PowerShell Script
-- **Added proper error handling**: Try-catch blocks around all critical operations
-- **Success validation**: Explicit checks for `Install-WindowsFeature` success
-- **Service verification**: Validation that IIS service is running before completion
-- **Comprehensive logging**: Progress messages and error details for troubleshooting
-- **Final validation**: End-to-end checks to ensure deployment success
-
-#### 2. Improved Terraform Configuration
-- **Better script execution**: Changed from `EncodedCommand` to `script` parameter
-- **Auto-upgrade enabled**: `auto_upgrade_minor_version = true` for stability
-- **Timestamp tracking**: Added to ensure proper update detection
-- **Cleaner encoding**: Using `base64encode(file())` for script embedding
-
-### Key Changes Made
-
-#### Before (Problematic):
-```powershell
-# Install IIS web server
-Install-WindowsFeature -name Web-Server -IncludeManagementTools
-
-# Write the HTML file to IIS wwwroot
-$html | Out-File -FilePath "C:\inetpub\wwwroot\index.html" -Encoding UTF8
-
-# Start IIS service
-Start-Service W3SVC
+**Fixed Configuration:**
+```hcl
+protected_settings = jsonencode({
+  "script" = base64encode(file("${path.module}/setup-iis.ps1"))
+})
 ```
 
-#### After (Fixed):
-```powershell
-# Install IIS web server
-Write-Output "Starting IIS installation..."
-$result = Install-WindowsFeature -name Web-Server -IncludeManagementTools
-if ($result.Success -eq $false) {
-    Write-Error "Failed to install IIS: $($result.ExitCode)"
-    exit 1
-}
-Write-Output "IIS installation completed successfully"
+**Why This Works:** When only the `script` parameter is provided with base64-encoded PowerShell content, Azure automatically executes the script without needing a separate `commandToExecute` directive.
 
-# Write the HTML file to IIS wwwroot
-Write-Output "Creating custom HTML page..."
-try {
-    $html | Out-File -FilePath "C:\inetpub\wwwroot\index.html" -Encoding UTF8 -Force
-    Write-Output "HTML page created successfully"
-} catch {
-    Write-Error "Failed to create HTML page: $($_.Exception.Message)"
-    exit 1
-}
+### Key Technical Details
 
-# Final validation
-Write-Output "Validating deployment..."
-if (Test-Path "C:\inetpub\wwwroot\index.html") {
-    Write-Output "HTML file exists: OK"
-} else {
-    Write-Error "HTML file not found"
-    exit 1
-}
+1. **Azure Custom Script Extension Behavior**: 
+   - With `script` parameter only: Azure executes the base64-decoded content directly
+   - With `fileUris` + `commandToExecute`: Files are downloaded and can be referenced by name
+   - Mixing `script` + `commandToExecute` with file references causes this exact error
 
-$service = Get-Service W3SVC
-if ($service.Status -eq "Running") {
-    Write-Output "IIS service is running: OK"
-} else {
-    Write-Error "IIS service is not running: $($service.Status)"
-    exit 1
-}
-
-Write-Output "Demo 2 setup completed successfully!"
-exit 0
-```
-
-### Benefits of the Fix
-
-1. **Better Error Reporting**: Clear error messages help identify specific failure points
-2. **Increased Reliability**: Proper validation ensures all components are working
-3. **Easier Troubleshooting**: Comprehensive logging provides debugging information
-4. **Graceful Failure Handling**: Script exits cleanly with appropriate error codes
-5. **Improved Success Rate**: Validation steps ensure the deployment actually works
+2. **The Fix is Minimal**: 
+   - Removed the conflicting `commandToExecute` parameter
+   - Kept the `script` parameter with base64-encoded content
+   - No changes needed to the PowerShell script itself
 
 ### Testing the Fix
 
-The fix has been validated with:
-- PowerShell syntax validation
-- Error handling pattern testing
-- File operation testing
-- Terraform configuration validation
-- Azure PowerShell cmdlet pattern verification
+The fix addresses the specific error:
+- ✅ Eliminates the "file does not exist" error
+- ✅ Allows the PowerShell script to execute properly
+- ✅ Maintains the same functionality with cleaner configuration
+- ✅ Uses Azure best practices for embedded script execution
 
-### Next Steps
+### Alternative Approaches (Not Used)
 
-If you encounter similar issues:
+We could have used these approaches, but they require more changes:
 
-1. **Check the VM extension logs** in the Azure Portal under VM → Extensions
-2. **Review the script output** in the extension execution logs
-3. **Verify Azure permissions** for the service principal
-4. **Ensure VM size compatibility** with Windows Server 2022
-5. **Check network connectivity** for any required downloads
+1. **FileUris Approach** (more complex):
+```hcl
+settings = jsonencode({
+  "fileUris" = ["https://raw.githubusercontent.com/your-repo/setup-iis.ps1"]
+})
+protected_settings = jsonencode({
+  "commandToExecute" = "powershell -ExecutionPolicy Unrestricted -File setup-iis.ps1"
+})
+```
 
-### Support
+2. **Inline Command Approach** (less maintainable):
+```hcl
+protected_settings = jsonencode({
+  "commandToExecute" = "powershell -ExecutionPolicy Unrestricted -Command \"& { ${replace(file("${path.module}/setup-iis.ps1"), "\"", "`\"" )} }\""
+})
+```
 
-For additional troubleshooting:
-- Review the Azure VM extension documentation
-- Check the Terraform AzureRM provider documentation
-- Use Azure CloudShell for direct VM management commands
+### Benefits of the Chosen Fix
+
+1. **Minimal Changes**: Only removed conflicting parameters
+2. **Secure**: Script content remains in protected_settings
+3. **Maintainable**: Script stays in separate file for version control
+4. **Reliable**: Uses Azure's intended pattern for embedded scripts
+5. **Self-Contained**: No external dependencies or URLs needed
+
+### Prevention
+
+To avoid similar issues:
+- Use either `script` parameter alone OR `fileUris` + `commandToExecute`
+- Never mix embedded script content with file-based command execution
+- Test VM extensions in isolation when troubleshooting
+- Check Azure documentation for extension-specific parameter patterns
