@@ -161,14 +161,19 @@ resource "azurerm_windows_virtual_machine" "demo2" {
 
 # Windows VM Extension to install IIS and setup demo page
 resource "azurerm_virtual_machine_extension" "demo2" {
-  name                 = "install-iis"
-  virtual_machine_id   = azurerm_windows_virtual_machine.demo2.id
-  publisher            = "Microsoft.Compute"
-  type                 = "CustomScriptExtension"
-  type_handler_version = "1.10"
+  name                       = "install-iis"
+  virtual_machine_id         = azurerm_windows_virtual_machine.demo2.id
+  publisher                  = "Microsoft.Compute"
+  type                       = "CustomScriptExtension"
+  type_handler_version       = "1.10"
+  auto_upgrade_minor_version = true
+
+  settings = jsonencode({
+    "timestamp" = timestamp()
+  })
 
   protected_settings = jsonencode({
-    "commandToExecute" = "powershell -ExecutionPolicy Unrestricted -EncodedCommand ${base64encode(file("${path.module}/setup-iis.ps1"))}"
+    "script" = base64encode(file("${path.module}/setup-iis.ps1"))
   })
 
   tags = {
