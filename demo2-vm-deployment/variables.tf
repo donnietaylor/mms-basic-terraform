@@ -28,8 +28,9 @@ variable "admin_username" {
   default     = "azureuser"
 }
 
-variable "ssh_public_key" {
-  description = "SSH public key for VM access"
+variable "admin_password" {
+  description = "Admin password for the VM"
   type        = string
+  sensitive   = true
   # This will need to be provided during deployment
 }

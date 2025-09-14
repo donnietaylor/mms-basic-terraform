@@ -71,13 +71,13 @@ resource "azurerm_network_security_group" "demo2" {
   resource_group_name = azurerm_resource_group.demo2.name
 
   security_rule {
-    name                       = "SSH"
+    name                       = "RDP"
     priority                   = 1001
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
     source_port_range          = "*"
-    destination_port_range     = "22"
+    destination_port_range     = "3389"
     source_address_prefix      = "*" # In production, restrict this to specific IPs
     destination_address_prefix = "*"
   }
@@ -127,25 +127,18 @@ resource "azurerm_network_interface_security_group_association" "demo2" {
   network_security_group_id = azurerm_network_security_group.demo2.id
 }
 
-# Linux Virtual Machine
-resource "azurerm_linux_virtual_machine" "demo2" {
+# Windows Virtual Machine
+resource "azurerm_windows_virtual_machine" "demo2" {
   name                = var.vm_name
   location            = azurerm_resource_group.demo2.location
   resource_group_name = azurerm_resource_group.demo2.name
   size                = var.vm_size
   admin_username      = var.admin_username
-
-  # Disable password authentication and use SSH keys
-  disable_password_authentication = true
+  admin_password      = var.admin_password
 
   network_interface_ids = [
     azurerm_network_interface.demo2.id,
   ]
-
-  admin_ssh_key {
-    username   = var.admin_username
-    public_key = var.ssh_public_key
-  }
 
   os_disk {
     caching              = "ReadWrite"
@@ -153,14 +146,30 @@ resource "azurerm_linux_virtual_machine" "demo2" {
   }
 
   source_image_reference {
-    publisher = "Canonical"
-    offer     = "0001-com-ubuntu-server-jammy"
-    sku       = "22_04-lts-gen2"
+    publisher = "MicrosoftWindowsServer"
+    offer     = "WindowsServer"
+    sku       = "2022-Datacenter"
     version   = "latest"
   }
 
-  # Custom data to install nginx
-  custom_data = base64encode(file("${path.module}/cloud-init.yml"))
+  tags = {
+    Environment = "Demo"
+    Conference  = "MMSMusic"
+    Demo        = "2-VM-Deployment"
+  }
+}
+
+# Windows VM Extension to install IIS and setup demo page
+resource "azurerm_virtual_machine_extension" "demo2" {
+  name                 = "install-iis"
+  virtual_machine_id   = azurerm_windows_virtual_machine.demo2.id
+  publisher            = "Microsoft.Compute"
+  type                 = "CustomScriptExtension"
+  type_handler_version = "1.10"
+
+  settings = jsonencode({
+    "commandToExecute" = "powershell -ExecutionPolicy Unrestricted -Command \"Install-WindowsFeature -name Web-Server -IncludeManagementTools; $html = @'<!DOCTYPE html><html><head><title>MMS Music Conference - Demo 2</title><style>body { font-family: Arial, sans-serif; margin: 40px; background-color: #f0f8ff; } .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); } .header { color: #2c3e50; text-align: center; } .demo-info { background-color: #e8f4fd; padding: 15px; border-radius: 5px; margin: 20px 0; } .success { color: #27ae60; font-weight: bold; }</style></head><body><div class=container><h1 class=header>🎵 MMS Music Conference 🎵</h1><h2 class=header>Demo 2: Windows VM Deployment</h2><div class=demo-info><h3>🚀 Success! Your Windows VM is Running</h3><p class=success>This web server was automatically deployed using Terraform!</p></div><h3>What was deployed:</h3><ul><li>✅ Virtual Network with custom subnet</li><li>✅ Network Security Group with RDP and HTTP rules</li><li>✅ Windows Server 2022 Virtual Machine</li><li>✅ Public IP address</li><li>✅ IIS web server (this page!)</li></ul><h3>From ClickOps to DevOps:</h3><p>Instead of manually clicking through the Azure Portal to create a VM, network, and security rules, everything was defined as code and deployed consistently!</p><h3>Server Information:</h3><ul><li><strong>OS:</strong> Windows Server 2022</li><li><strong>Web Server:</strong> IIS</li><li><strong>Deployment Method:</strong> Terraform + PowerShell</li><li><strong>Authentication:</strong> Username/Password (no SSH key required!)</li></ul><p><strong>Next:</strong> Try Demo 3 for a full application deployment with database!</p></div></body></html>'@; $html | Out-File -FilePath 'C:\\inetpub\\wwwroot\\index.html' -Encoding UTF8; Start-Service W3SVC\""
+  })
 
   tags = {
     Environment = "Demo"

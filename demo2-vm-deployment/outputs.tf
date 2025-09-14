@@ -15,12 +15,12 @@ output "public_ip_address" {
 
 output "vm_name" {
   description = "Name of the virtual machine"
-  value       = azurerm_linux_virtual_machine.demo2.name
+  value       = azurerm_windows_virtual_machine.demo2.name
 }
 
-output "ssh_connection_command" {
-  description = "SSH command to connect to the VM"
-  value       = "ssh ${var.admin_username}@${azurerm_public_ip.demo2.ip_address}"
+output "rdp_connection_command" {
+  description = "RDP connection information for the VM"
+  value       = "Connect via RDP to: ${azurerm_public_ip.demo2.ip_address}:3389 with username: ${var.admin_username}"
 }
 
 output "web_url" {
