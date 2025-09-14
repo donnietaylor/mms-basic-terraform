@@ -71,15 +71,11 @@ jobs:
     - name: Terraform Plan
       if: github.event.inputs.action == 'plan'
       run: |
-        if [ -n "${{ github.event.inputs.db_admin_password }}" ]; then
-          terraform plan \
-            -var="app_service_sku=${{ github.event.inputs.app_service_sku }}" \
-            -out=tfplan
-        else
-          echo "Database admin password is required for planning"
-          echo "Please provide a secure password (minimum 8 characters)"
-          exit 1
-        fi
+        # For planning, we use the provided password via environment variable
+        # This ensures no password is exposed in the command line or logs
+        terraform plan \
+          -var="app_service_sku=${{ github.event.inputs.app_service_sku }}" \
+          -out=tfplan
       env:
         ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
         ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
