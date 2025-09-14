@@ -36,6 +36,7 @@ resource "random_string" "suffix" {
 }
 
 # Import block for existing resource group (to resolve state conflicts)
+# Note: Update the subscription ID if using a different Azure subscription
 import {
   to = azurerm_resource_group.demo4
   id = "/subscriptions/19381250-e2a4-43b0-b620-663c2a3da3c4/resourceGroups/rg-mms-demo4-state"
@@ -55,6 +56,7 @@ resource "azurerm_resource_group" "demo4" {
 }
 
 # Import block for existing storage account (to resolve state conflicts)
+# Note: Update the subscription ID if using a different Azure subscription
 import {
   to = azurerm_storage_account.state_storage
   id = "/subscriptions/19381250-e2a4-43b0-b620-663c2a3da3c4/resourceGroups/rg-mms-demo4-state/providers/Microsoft.Storage/storageAccounts/statemmsdemo4state"

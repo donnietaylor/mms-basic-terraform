@@ -91,6 +91,8 @@ import {
 }
 ```
 
+**⚠️ Important:** If you're using a different Azure subscription, update the subscription ID in the import blocks above to match your environment.
+
 **Benefits of Import Blocks:**
 - ✅ **Resolves** "resource already exists" errors
 - ✅ **Preserves** existing resource configuration
