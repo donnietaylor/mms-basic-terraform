@@ -81,16 +81,6 @@ jobs:
 
     - name: Terraform Apply
       if: github.event.inputs.action == 'deploy'
-      run: |
-        if [ -n "${{ github.event.inputs.admin_password }}" ]; then
-          terraform apply -auto-approve \
-            -var="vm_size=${{ github.event.inputs.vm_size }}"
-        else
-          echo "Admin password is required for Windows VM deployment"
-          echo "Please provide a secure admin password in the workflow inputs"
-          echo "Password must meet Azure complexity requirements (8+ chars, uppercase, lowercase, number, special char)"
-          exit 1
-        fi
       env:
         ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
         ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
@@ -100,16 +90,6 @@ jobs:
 
     - name: Terraform Destroy
       if: github.event.inputs.action == 'destroy'
-      run: |
-        if [ -n "${{ github.event.inputs.admin_password }}" ]; then
-          terraform destroy -auto-approve \
-            -var="vm_size=${{ github.event.inputs.vm_size }}"
-        else
-          echo "Admin password is required for destroying Windows VM deployment"
-          echo "Please provide a secure admin password in the workflow inputs"
-          echo "Password must meet Azure complexity requirements (8+ chars, uppercase, lowercase, number, special char)"
-          exit 1
-        fi
       env:
         ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
         ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
