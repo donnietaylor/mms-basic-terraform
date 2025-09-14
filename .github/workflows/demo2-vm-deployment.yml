@@ -1,0 +1,159 @@
+name: 'Demo 2: VM Deployment'
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'plan'
+        type: choice
+        options:
+        - plan
+        - deploy
+        - destroy
+      ssh_public_key:
+        description: 'SSH Public Key for VM access (required for deploy/destroy)'
+        required: false
+        type: string
+      vm_size:
+        description: 'VM Size'
+        required: false
+        default: 'Standard_B2s'
+        type: choice
+        options:
+        - Standard_B1s
+        - Standard_B2s
+        - Standard_B4ms
+
+env:
+  TF_VERSION: '1.5.0'
+  WORKING_DIRECTORY: './demo2-vm-deployment'
+
+jobs:
+  terraform:
+    name: 'Demo 2 - VM Deployment'
+    runs-on: ubuntu-latest
+    environment: production
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Terraform Init
+      run: terraform init
+
+    - name: Terraform Format Check
+      run: terraform fmt -check
+
+    - name: Terraform Validate
+      run: terraform validate
+
+    - name: Terraform Plan
+      if: github.event.inputs.action == 'plan'
+      run: |
+        if [ -n "${{ github.event.inputs.ssh_public_key }}" ]; then
+          terraform plan \
+            -var="ssh_public_key=${{ github.event.inputs.ssh_public_key }}" \
+            -var="vm_size=${{ github.event.inputs.vm_size }}" \
+            -out=tfplan
+        else
+          echo "SSH public key is required for planning VM deployment"
+          echo "Please provide your SSH public key in the workflow inputs"
+          exit 1
+        fi
+      env:
+        ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+
+    - name: Terraform Apply
+      if: github.event.inputs.action == 'deploy'
+      run: |
+        if [ -n "${{ github.event.inputs.ssh_public_key }}" ]; then
+          terraform apply -auto-approve \
+            -var="ssh_public_key=${{ github.event.inputs.ssh_public_key }}" \
+            -var="vm_size=${{ github.event.inputs.vm_size }}"
+        else
+          echo "SSH public key is required for VM deployment"
+          echo "Please provide your SSH public key in the workflow inputs"
+          exit 1
+        fi
+      env:
+        ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+
+    - name: Terraform Destroy
+      if: github.event.inputs.action == 'destroy'
+      run: |
+        if [ -n "${{ github.event.inputs.ssh_public_key }}" ]; then
+          terraform destroy -auto-approve \
+            -var="ssh_public_key=${{ github.event.inputs.ssh_public_key }}" \
+            -var="vm_size=${{ github.event.inputs.vm_size }}"
+        else
+          echo "SSH public key is required for destroying VM deployment"
+          echo "Please provide your SSH public key in the workflow inputs"
+          exit 1
+        fi
+      env:
+        ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+
+    - name: Get Terraform Outputs
+      if: github.event.inputs.action == 'deploy'
+      id: tf-outputs
+      run: |
+        PUBLIC_IP=$(terraform output -raw public_ip_address)
+        SSH_COMMAND=$(terraform output -raw ssh_connection_command)
+        WEB_URL=$(terraform output -raw web_url)
+        echo "public_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
+        echo "ssh_command=$SSH_COMMAND" >> $GITHUB_OUTPUT
+        echo "web_url=$WEB_URL" >> $GITHUB_OUTPUT
+      env:
+        ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+
+    - name: Output Summary
+      if: github.event.inputs.action == 'deploy'
+      run: |
+        echo "## Demo 2 VM Deployment Complete! 🚀" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Resources Created:" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Resource Group" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Virtual Network & Subnet" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Network Security Group" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Public IP Address" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Ubuntu 22.04 LTS Virtual Machine" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Nginx Web Server" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Access Your VM:" >> $GITHUB_STEP_SUMMARY
+        echo "- **Web Server**: [${{ steps.tf-outputs.outputs.web_url }}](${{ steps.tf-outputs.outputs.web_url }})" >> $GITHUB_STEP_SUMMARY
+        echo "- **SSH Access**: \`${{ steps.tf-outputs.outputs.ssh_command }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
+        echo "- 🌐 Visit the web URL to see the demo page" >> $GITHUB_STEP_SUMMARY
+        echo "- 🔑 Use SSH to connect and explore the Ubuntu environment" >> $GITHUB_STEP_SUMMARY
+        echo "- 🎯 Try Demo 3 for a full application deployment" >> $GITHUB_STEP_SUMMARY
+        echo "- 💰 **Important**: Destroy resources when done to avoid charges" >> $GITHUB_STEP_SUMMARY

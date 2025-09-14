@@ -1,0 +1,18 @@
+# Demo 3: Full App Deployment - Example Variables
+# Copy this file to terraform.tfvars and customize the values
+
+# Resource group name  
+resource_group_name = "rg-mms-demo3-app"
+
+# Azure region
+location = "East US"
+
+# App Service SKU (F1=Free, B1=Basic, S1=Standard, P1v2=Premium)
+app_service_sku = "F1"
+
+# Database admin username
+db_admin_username = "psqladmin"
+
+# Database admin password (minimum 8 characters, include uppercase, lowercase, numbers)
+# IMPORTANT: Use a secure password and do not commit this file to version control
+db_admin_password = "SecurePassword123!"
