@@ -12,8 +12,8 @@ on:
         - plan
         - deploy
         - destroy
-      ssh_public_key:
-        description: 'SSH Public Key for VM access (required for deploy/destroy)'
+      admin_password:
+        description: 'Admin password for Windows VM (required for deploy/destroy) - must meet Azure complexity requirements'
         required: false
         type: string
       vm_size:
@@ -67,14 +67,15 @@ jobs:
     - name: Terraform Plan
       if: github.event.inputs.action == 'plan'
       run: |
-        if [ -n "${{ github.event.inputs.ssh_public_key }}" ]; then
+        if [ -n "${{ github.event.inputs.admin_password }}" ]; then
           terraform plan \
-            -var="ssh_public_key=${{ github.event.inputs.ssh_public_key }}" \
+            -var="admin_password=${{ github.event.inputs.admin_password }}" \
             -var="vm_size=${{ github.event.inputs.vm_size }}" \
             -out=tfplan
         else
-          echo "SSH public key is required for planning VM deployment"
-          echo "Please provide your SSH public key in the workflow inputs"
+          echo "Admin password is required for planning Windows VM deployment"
+          echo "Please provide a secure admin password in the workflow inputs"
+          echo "Password must meet Azure complexity requirements (8+ chars, uppercase, lowercase, number, special char)"
           exit 1
         fi
       env:
@@ -86,13 +87,14 @@ jobs:
     - name: Terraform Apply
       if: github.event.inputs.action == 'deploy'
       run: |
-        if [ -n "${{ github.event.inputs.ssh_public_key }}" ]; then
+        if [ -n "${{ github.event.inputs.admin_password }}" ]; then
           terraform apply -auto-approve \
-            -var="ssh_public_key=${{ github.event.inputs.ssh_public_key }}" \
+            -var="admin_password=${{ github.event.inputs.admin_password }}" \
             -var="vm_size=${{ github.event.inputs.vm_size }}"
         else
-          echo "SSH public key is required for VM deployment"
-          echo "Please provide your SSH public key in the workflow inputs"
+          echo "Admin password is required for Windows VM deployment"
+          echo "Please provide a secure admin password in the workflow inputs"
+          echo "Password must meet Azure complexity requirements (8+ chars, uppercase, lowercase, number, special char)"
           exit 1
         fi
       env:
@@ -104,13 +106,14 @@ jobs:
     - name: Terraform Destroy
       if: github.event.inputs.action == 'destroy'
       run: |
-        if [ -n "${{ github.event.inputs.ssh_public_key }}" ]; then
+        if [ -n "${{ github.event.inputs.admin_password }}" ]; then
           terraform destroy -auto-approve \
-            -var="ssh_public_key=${{ github.event.inputs.ssh_public_key }}" \
+            -var="admin_password=${{ github.event.inputs.admin_password }}" \
             -var="vm_size=${{ github.event.inputs.vm_size }}"
         else
-          echo "SSH public key is required for destroying VM deployment"
-          echo "Please provide your SSH public key in the workflow inputs"
+          echo "Admin password is required for destroying Windows VM deployment"
+          echo "Please provide a secure admin password in the workflow inputs"
+          echo "Password must meet Azure complexity requirements (8+ chars, uppercase, lowercase, number, special char)"
           exit 1
         fi
       env:
@@ -124,10 +127,10 @@ jobs:
       id: tf-outputs
       run: |
         PUBLIC_IP=$(terraform output -raw public_ip_address)
-        SSH_COMMAND=$(terraform output -raw ssh_connection_command)
+        RDP_COMMAND=$(terraform output -raw rdp_connection_command)
         WEB_URL=$(terraform output -raw web_url)
         echo "public_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
-        echo "ssh_command=$SSH_COMMAND" >> $GITHUB_OUTPUT
+        echo "rdp_command=$RDP_COMMAND" >> $GITHUB_OUTPUT
         echo "web_url=$WEB_URL" >> $GITHUB_OUTPUT
       env:
         ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
@@ -138,22 +141,22 @@ jobs:
     - name: Output Summary
       if: github.event.inputs.action == 'deploy'
       run: |
-        echo "## Demo 2 VM Deployment Complete! 🚀" >> $GITHUB_STEP_SUMMARY
+        echo "## Demo 2 Windows VM Deployment Complete! 🚀" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Resources Created:" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Resource Group" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Virtual Network & Subnet" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Network Security Group" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Public IP Address" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ Ubuntu 22.04 LTS Virtual Machine" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ Nginx Web Server" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Windows Server 2022 Virtual Machine" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ IIS Web Server" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Access Your VM:" >> $GITHUB_STEP_SUMMARY
+        echo "### Access Your Windows VM:" >> $GITHUB_STEP_SUMMARY
         echo "- **Web Server**: [${{ steps.tf-outputs.outputs.web_url }}](${{ steps.tf-outputs.outputs.web_url }})" >> $GITHUB_STEP_SUMMARY
-        echo "- **SSH Access**: \`${{ steps.tf-outputs.outputs.ssh_command }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **RDP Access**: ${{ steps.tf-outputs.outputs.rdp_command }}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
         echo "- 🌐 Visit the web URL to see the demo page" >> $GITHUB_STEP_SUMMARY
-        echo "- 🔑 Use SSH to connect and explore the Ubuntu environment" >> $GITHUB_STEP_SUMMARY
+        echo "- 🖥️ Use RDP to connect and explore the Windows Server environment" >> $GITHUB_STEP_SUMMARY
         echo "- 🎯 Try Demo 3 for a full application deployment" >> $GITHUB_STEP_SUMMARY
         echo "- 💰 **Important**: Destroy resources when done to avoid charges" >> $GITHUB_STEP_SUMMARY
