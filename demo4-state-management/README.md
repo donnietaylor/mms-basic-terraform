@@ -3,6 +3,8 @@
 ## Overview
 This demo focuses on one of Terraform's most critical concepts: **state management** and **configuration drift detection**. You'll learn how Terraform tracks infrastructure changes, detects when resources have been modified outside of Terraform, and how it reconciles these differences.
 
+**🎯 This demo now uses remote state by default**, making it production-ready and suitable for GitHub Workflows and team collaboration.
+
 ## What This Demo Deploys
 - **Resource Group**: Container for all demo resources and state storage  
 - **Storage Account**: Demonstrates remote state backend best practices
@@ -29,7 +31,7 @@ Terraform state is a **mapping between your configuration files and real-world r
 
 ### Local vs Remote State
 
-#### Local State (Default)
+#### Local State (Development/Testing Only)
 ```bash
 # State stored in terraform.tfstate file locally
 terraform apply
@@ -42,12 +44,12 @@ ls -la terraform.tfstate  # Contains sensitive data!
 - ❌ Sensitive data stored locally in plain text
 - ❌ No versioning or backup capabilities
 
-#### Remote State (Production Best Practice)
+#### Remote State (Production Best Practice - **Used by Default in This Demo**)
 ```hcl
 terraform {
   backend "azurerm" {
     resource_group_name  = "rg-mms-demo4-state"
-    storage_account_name = "statermms12345678"
+    storage_account_name = "statemmsdemo4state"
     container_name       = "tfstate"
     key                  = "demo4.terraform.tfstate"
   }
@@ -63,12 +65,24 @@ terraform {
 
 ## How to Run This Demo
 
-### Phase 1: Deploy Infrastructure
+### Running via GitHub Workflows (Recommended)
+1. Navigate to **Actions** tab in the GitHub repository
+2. Select **Demo 4: State Management** workflow
+3. Click **Run workflow**
+4. Choose action: `plan`, `deploy`, or `destroy`
+5. Optionally specify a custom resource group name
+6. Click **Run workflow**
+
+**🎯 The workflow automatically handles remote state setup and migration!**
+
+### Running Locally (Advanced)
+
+#### Phase 1: Deploy Infrastructure
 ```bash
 # Navigate to the demo directory
 cd demo4-state-management
 
-# Initialize Terraform
+# Initialize Terraform (will use remote backend if storage exists)
 terraform init
 
 # Preview the changes
@@ -77,9 +91,11 @@ terraform plan
 # Deploy the resources
 terraform apply
 
-# Review the outputs (including remote state setup instructions)
+# Review the outputs
 terraform output
 ```
+
+**Note:** Local runs will also use remote state after the first deployment.
 
 ### Phase 2: Examine Local State
 ```bash
@@ -106,10 +122,12 @@ terraform output application_insights_instrumentation_key
 5. **Modify** the SSH rule to allow from `0.0.0.0/0` instead of `10.0.0.0/8`
 6. **Add** a new rule: HTTPS (port 443) from anywhere
 
-**Step 2: Detect Drift with Terraform**
+**Step 2: Detect Drift with GitHub Workflows**
 ```bash
-# Terraform detects changes made outside of configuration
-terraform plan
+# In the GitHub repository:
+# 1. Go to Actions → Demo 4: State Management
+# 2. Run workflow with action = "plan"
+# 3. Review the workflow output to see drift detection
 
 # You'll see output like:
 # ~ azurerm_network_security_group.demo4 will be updated in-place
@@ -121,24 +139,22 @@ terraform plan
 #     ~ source_address_prefix = "0.0.0.0/0" -> "10.0.0.0/8" (drift fix)
 ```
 
-**Step 3: Fix Drift with Apply** 
+**Step 3: Fix Drift with GitHub Workflows** 
 ```bash
-# Restore configuration to match desired state
-terraform apply
-
-# Verify in Azure Portal that changes are reverted
+# In the GitHub repository:
+# 1. Go to Actions → Demo 4: State Management  
+# 2. Run workflow with action = "deploy"
+# 3. Verify in Azure Portal that changes are reverted
 ```
 
-### Phase 4: Migrate to Remote State (Advanced)
+### Phase 4: Understanding Remote State (No Migration Needed!)
 ```bash
-# Copy the backend configuration from outputs
+# This demo now uses remote state by default!
+# Check the backend configuration:
 terraform output remote_state_setup_instructions
 
-# Add the backend block to your terraform {} block in main.tf
-# Then migrate existing state
-terraform init -migrate-state
-
-# State is now stored remotely and accessible to your team
+# State is automatically stored in Azure Storage Account
+# and accessible to your team and CI/CD pipelines
 ```
 
 ## Key Learning Points

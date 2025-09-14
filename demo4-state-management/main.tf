@@ -13,13 +13,22 @@ terraform {
       version = "~>3.1"
     }
   }
+
+  # Remote state backend - stores state in Azure Storage Account
+  # This configuration allows the demo to work consistently in GitHub Workflows
+  backend "azurerm" {
+    resource_group_name  = "rg-mms-demo4-state"
+    storage_account_name = "statemmsdemo4state"
+    container_name       = "tfstate"
+    key                  = "demo4.terraform.tfstate"
+  }
 }
 
 provider "azurerm" {
   features {}
 }
 
-# Random suffix for unique naming
+# Random suffix for unique naming (where needed)
 resource "random_string" "suffix" {
   length  = 8
   special = false
@@ -40,8 +49,9 @@ resource "azurerm_resource_group" "demo4" {
 }
 
 # Storage Account for remote state backend (demonstrates best practice)
+# Uses a deterministic name so it can be referenced in backend configuration
 resource "azurerm_storage_account" "state_storage" {
-  name                     = "statermms${random_string.suffix.result}"
+  name                     = "statemmsdemo4state"
   resource_group_name      = azurerm_resource_group.demo4.name
   location                 = azurerm_resource_group.demo4.location
   account_tier             = "Standard"

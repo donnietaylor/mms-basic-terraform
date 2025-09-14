@@ -44,8 +44,9 @@ output "application_insights_connection_string" {
 output "remote_state_setup_instructions" {
   description = "Instructions for setting up remote state backend"
   value       = <<EOT
-To use remote state backend, add this to your terraform block:
-  
+Remote state backend is already configured in this demo!
+
+Current backend configuration:
 terraform {
   backend "azurerm" {
     resource_group_name  = "${azurerm_resource_group.demo4.name}"
@@ -55,6 +56,7 @@ terraform {
   }
 }
 
-Then run: terraform init -migrate-state
+This demo now uses remote state by default, making it suitable for GitHub Workflows.
+The state is automatically stored in the Azure Storage Account created by this configuration.
 EOT
 }
