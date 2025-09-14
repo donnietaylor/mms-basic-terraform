@@ -1,0 +1,185 @@
+name: 'Demo 3: Full App Deployment'
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'plan'
+        type: choice
+        options:
+        - plan
+        - deploy
+        - destroy
+      db_admin_password:
+        description: 'Database Admin Password (min 8 chars, required for deploy/destroy)'
+        required: false
+        type: string
+      app_service_sku:
+        description: 'App Service SKU'
+        required: false
+        default: 'F1'
+        type: choice
+        options:
+        - F1
+        - B1
+        - B2
+        - S1
+        - S2
+        - P1v2
+
+env:
+  TF_VERSION: '1.5.0'
+  WORKING_DIRECTORY: './demo3-app-deployment'
+
+jobs:
+  terraform:
+    name: 'Demo 3 - Full App Deployment'
+    runs-on: ubuntu-latest
+    environment: production
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+        terraform_wrapper: false
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Terraform Init
+      run: terraform init
+
+    - name: Terraform Format Check
+      run: terraform fmt -check
+
+    - name: Terraform Validate
+      run: terraform validate
+
+    - name: Terraform Plan
+      if: github.event.inputs.action == 'plan'
+      run: |
+        if [ -n "${{ github.event.inputs.db_admin_password }}" ]; then
+          terraform plan \
+            -var="db_admin_password=${{ github.event.inputs.db_admin_password }}" \
+            -var="app_service_sku=${{ github.event.inputs.app_service_sku }}" \
+            -out=tfplan
+        else
+          echo "Database admin password is required for planning"
+          echo "Please provide a secure password (minimum 8 characters)"
+          exit 1
+        fi
+      env:
+        ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+
+    - name: Terraform Apply
+      if: github.event.inputs.action == 'deploy'
+      run: |
+        if [ -n "${{ github.event.inputs.db_admin_password }}" ]; then
+          terraform apply -auto-approve \
+            -var="db_admin_password=${{ github.event.inputs.db_admin_password }}" \
+            -var="app_service_sku=${{ github.event.inputs.app_service_sku }}"
+        else
+          echo "Database admin password is required for deployment"
+          echo "Please provide a secure password (minimum 8 characters)"
+          exit 1
+        fi
+      env:
+        ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+
+    - name: Terraform Destroy
+      if: github.event.inputs.action == 'destroy'
+      run: |
+        if [ -n "${{ github.event.inputs.db_admin_password }}" ]; then
+          terraform destroy -auto-approve \
+            -var="db_admin_password=${{ github.event.inputs.db_admin_password }}" \
+            -var="app_service_sku=${{ github.event.inputs.app_service_sku }}"
+        else
+          echo "Database admin password is required for destroying resources"
+          echo "Please provide the same password used for deployment"
+          exit 1
+        fi
+      env:
+        ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+
+    - name: Get Terraform Outputs
+      if: github.event.inputs.action == 'deploy'
+      id: tf-outputs
+      run: |
+        APP_URL=$(terraform output -raw app_service_url)
+        STAGING_URL=$(terraform output -raw staging_slot_url)
+        DB_SERVER=$(terraform output -raw database_fqdn)
+        KEY_VAULT=$(terraform output -raw key_vault_name)
+        APP_INSIGHTS=$(terraform output -raw application_insights_name)
+        
+        echo "app_url=$APP_URL" >> $GITHUB_OUTPUT
+        echo "staging_url=$STAGING_URL" >> $GITHUB_OUTPUT
+        echo "db_server=$DB_SERVER" >> $GITHUB_OUTPUT
+        echo "key_vault=$KEY_VAULT" >> $GITHUB_OUTPUT
+        echo "app_insights=$APP_INSIGHTS" >> $GITHUB_OUTPUT
+      env:
+        ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+
+    - name: Output Summary
+      if: github.event.inputs.action == 'deploy'
+      run: |
+        echo "## Demo 3 Full Application Deployment Complete! 🎉" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🏗️ Enterprise Resources Created:" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ **App Service Plan** (${{ github.event.inputs.app_service_sku }} SKU)" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ **App Service** with Node.js runtime" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ **Staging Slot** for safe deployments" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ **PostgreSQL Flexible Server** with database" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ **Key Vault** for secrets management" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ **Application Insights** for monitoring" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ **Managed Identity** for secure authentication" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🌐 Access Your Application:" >> $GITHUB_STEP_SUMMARY
+        echo "- **Production App**: [${{ steps.tf-outputs.outputs.app_url }}](${{ steps.tf-outputs.outputs.app_url }})" >> $GITHUB_STEP_SUMMARY
+        echo "- **Staging Environment**: [${{ steps.tf-outputs.outputs.staging_url }}](${{ steps.tf-outputs.outputs.staging_url }})" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔧 Azure Resources:" >> $GITHUB_STEP_SUMMARY
+        echo "- **Database Server**: \`${{ steps.tf-outputs.outputs.db_server }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Key Vault**: \`${{ steps.tf-outputs.outputs.key_vault }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Application Insights**: \`${{ steps.tf-outputs.outputs.app_insights }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🎯 What This Demonstrates:" >> $GITHUB_STEP_SUMMARY
+        echo "- **Production-Ready Architecture**: Complete app stack with monitoring" >> $GITHUB_STEP_SUMMARY
+        echo "- **Security Best Practices**: Managed Identity + Key Vault integration" >> $GITHUB_STEP_SUMMARY
+        echo "- **DevOps Ready**: Staging slots for blue-green deployments" >> $GITHUB_STEP_SUMMARY
+        echo "- **Scalability**: App Service can scale based on demand" >> $GITHUB_STEP_SUMMARY
+        echo "- **Monitoring**: Application Insights provides full observability" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📊 Next Steps:" >> $GITHUB_STEP_SUMMARY
+        echo "- 🌐 Visit both production and staging URLs" >> $GITHUB_STEP_SUMMARY
+        echo "- 📈 Check Application Insights for metrics and logs" >> $GITHUB_STEP_SUMMARY
+        echo "- 🔐 Verify Key Vault contains database connection string" >> $GITHUB_STEP_SUMMARY
+        echo "- 🗄️ Connect to PostgreSQL database if needed" >> $GITHUB_STEP_SUMMARY
+        echo "- 💰 **Important**: Destroy resources when done to avoid charges" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "---" >> $GITHUB_STEP_SUMMARY
+        echo "**🎵 MMS Music Conference - From ClickOps to DevOps Complete! 🎵**" >> $GITHUB_STEP_SUMMARY

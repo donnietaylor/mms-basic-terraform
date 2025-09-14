@@ -1,0 +1,11 @@
+# Demo 1: Basic Resources - Example Variables
+# Copy this file to terraform.tfvars and customize the values
+
+# Resource group name
+resource_group_name = "rg-mms-demo1-basic"
+
+# Azure region
+location = "East US"
+
+# Storage account name (must be globally unique, 3-24 characters, lowercase letters and numbers only)
+storage_account_name = "sammsdemomusicconf01"

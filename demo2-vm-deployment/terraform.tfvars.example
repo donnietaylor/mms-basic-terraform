@@ -1,0 +1,22 @@
+# Demo 2: VM Deployment - Example Variables  
+# Copy this file to terraform.tfvars and customize the values
+
+# Resource group name
+resource_group_name = "rg-mms-demo2-vm"
+
+# Azure region
+location = "East US"
+
+# Virtual machine name
+vm_name = "vm-demo2-web"
+
+# VM size (Standard_B1s for minimal cost, Standard_B2s for better performance)
+vm_size = "Standard_B2s"
+
+# Admin username for the VM
+admin_username = "azureuser"
+
+# SSH public key for VM access (paste your public key here)
+# Generate with: ssh-keygen -t rsa -b 4096 -f ~/.ssh/demo2_key
+# Then use: cat ~/.ssh/demo2_key.pub
+ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC... your-public-key-here"
