@@ -1,6 +1,6 @@
 # Demo 4: Terraform State Management and Drift Detection
-# This demo demonstrates how Terraform state works and how it detects
-# and fixes configuration drift
+# This demo demonstrates how Terraform detects and fixes configuration drift
+# Focus: Network Security Group rules and VM configuration changes
 
 terraform {
   required_providers {
@@ -14,13 +14,14 @@ terraform {
     }
   }
 
-  # Remote state backend - stores state in Azure Storage Account
-  # This configuration allows the demo to work consistently in GitHub Workflows
+  # Remote state backend - stored in the same RG for easy cleanup
+  # Backend configuration will be set dynamically during deployment
   backend "azurerm" {
-    resource_group_name  = "rg-mms-demo4-state"
-    storage_account_name = "statemmsdemo4state"
-    container_name       = "tfstate"
-    key                  = "demo4.terraform.tfstate"
+    # Values set via GitHub Actions:
+    # resource_group_name  = "rg-mms-demo4-state"  
+    # storage_account_name = "stdemo4<random>"
+    # container_name       = "tfstate"
+    # key                  = "demo4.terraform.tfstate"
   }
 }
 
@@ -28,44 +29,29 @@ provider "azurerm" {
   features {}
 }
 
-# Random suffix for unique naming (where needed)
+# Random suffix for unique naming to avoid conflicts
 resource "random_string" "suffix" {
   length  = 8
   special = false
   upper   = false
 }
 
-# Import block for existing resource group (to resolve state conflicts)
-# Note: Update the subscription ID if using a different Azure subscription
-import {
-  to = azurerm_resource_group.demo4
-  id = "/subscriptions/19381250-e2a4-43b0-b620-663c2a3da3c4/resourceGroups/rg-mms-demo4-state"
-}
-
-# Resource Group - This will store our state and contain our demo resources
+# Resource Group - Contains all demo resources including state storage
 resource "azurerm_resource_group" "demo4" {
   name     = var.resource_group_name
   location = var.location
 
   tags = {
     Environment = "Demo"
-    Conference  = "MMSMusic"
+    Conference  = "MMSMusic"  
     Demo        = "4-State-Management"
-    Purpose     = "State-Demo"
+    Purpose     = "Drift-Demo"
   }
 }
 
-# Import block for existing storage account (to resolve state conflicts)
-# Note: Update the subscription ID if using a different Azure subscription
-import {
-  to = azurerm_storage_account.state_storage
-  id = "/subscriptions/19381250-e2a4-43b0-b620-663c2a3da3c4/resourceGroups/rg-mms-demo4-state/providers/Microsoft.Storage/storageAccounts/statemmsdemo4state"
-}
-
-# Storage Account for remote state backend (demonstrates best practice)
-# Uses a deterministic name so it can be referenced in backend configuration
+# Storage Account for remote state backend
 resource "azurerm_storage_account" "state_storage" {
-  name                     = "statemmsdemo4state"
+  name                     = "stdemo4${random_string.suffix.result}"
   resource_group_name      = azurerm_resource_group.demo4.name
   location                 = azurerm_resource_group.demo4.location
   account_tier             = "Standard"
@@ -84,54 +70,6 @@ resource "azurerm_storage_account" "state_storage" {
   }
 }
 
-# Import block for existing storage container (to resolve state conflicts)
-import {
-  to = azurerm_storage_container.state_container
-  id = "https://statemmsdemo4state.blob.core.windows.net/tfstate"
-}
-
-# Import block for existing network security group (to resolve state conflicts)
-# Note: Update the subscription ID if using a different Azure subscription
-import {
-  to = azurerm_network_security_group.demo4
-  id = "/subscriptions/19381250-e2a4-43b0-b620-663c2a3da3c4/resourceGroups/rg-mms-demo4-state/providers/Microsoft.Network/networkSecurityGroups/nsg-demo4-drift"
-}
-
-# Import block for existing virtual network (to resolve state conflicts)
-# Note: Update the subscription ID if using a different Azure subscription
-import {
-  to = azurerm_virtual_network.demo4
-  id = "/subscriptions/19381250-e2a4-43b0-b620-663c2a3da3c4/resourceGroups/rg-mms-demo4-state/providers/Microsoft.Network/virtualNetworks/vnet-demo4-state"
-}
-
-# Import block for existing subnet (to resolve state conflicts)
-# Note: Update the subscription ID if using a different Azure subscription
-import {
-  to = azurerm_subnet.demo4
-  id = "/subscriptions/19381250-e2a4-43b0-b620-663c2a3da3c4/resourceGroups/rg-mms-demo4-state/providers/Microsoft.Network/virtualNetworks/vnet-demo4-state/subnets/subnet-demo4-vm"
-}
-
-# Import block for existing public IP (to resolve state conflicts)
-# Note: Update the subscription ID if using a different Azure subscription
-import {
-  to = azurerm_public_ip.demo4_vm
-  id = "/subscriptions/19381250-e2a4-43b0-b620-663c2a3da3c4/resourceGroups/rg-mms-demo4-state/providers/Microsoft.Network/publicIPAddresses/pip-demo4-vm"
-}
-
-# Import block for existing application insights (to resolve state conflicts)
-# Note: Update the subscription ID if using a different Azure subscription
-import {
-  to = azurerm_application_insights.demo4
-  id = "/subscriptions/19381250-e2a4-43b0-b620-663c2a3da3c4/resourceGroups/rg-mms-demo4-state/providers/Microsoft.Insights/components/ai-demo4-state"
-}
-
-# Import block for existing network interface (to resolve state conflicts)
-# Note: Update the subscription ID if using a different Azure subscription
-import {
-  to = azurerm_network_interface.demo4_vm
-  id = "/subscriptions/19381250-e2a4-43b0-b620-663c2a3da3c4/resourceGroups/rg-mms-demo4-state/providers/Microsoft.Network/networkInterfaces/nic-demo4-vm"
-}
-
 # Storage Container for Terraform state files
 resource "azurerm_storage_container" "state_container" {
   name                  = "tfstate"
@@ -139,13 +77,14 @@ resource "azurerm_storage_container" "state_container" {
   container_access_type = "private"
 }
 
-# Network Security Group - This resource will be modified to demonstrate drift
+# Network Security Group - THE MAIN DRIFT DEMONSTRATION TARGET
 resource "azurerm_network_security_group" "demo4" {
-  name                = "nsg-demo4-drift"
+  name                = "nsg-demo4-drift-${random_string.suffix.result}"
   location            = azurerm_resource_group.demo4.location
   resource_group_name = azurerm_resource_group.demo4.name
 
-  # Default rule that we'll modify manually to show drift
+  # RDP rule - RESTRICTED to private networks only (drift target #1)
+  # In Portal: Change source from "10.0.0.0/8" to "*" to show insecure drift
   security_rule {
     name                       = "RDP"
     priority                   = 1001
@@ -154,11 +93,12 @@ resource "azurerm_network_security_group" "demo4" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "3389"
-    source_address_prefix      = "10.0.0.0/8"
+    source_address_prefix      = "10.0.0.0/8"  # SECURE - Private networks only
     destination_address_prefix = "*"
   }
 
-  # HTTP rule that we'll delete manually to show drift detection
+  # HTTP rule - (drift target #2)  
+  # In Portal: Delete this rule to show missing configuration drift
   security_rule {
     name                       = "HTTP"
     priority                   = 1002
@@ -175,13 +115,13 @@ resource "azurerm_network_security_group" "demo4" {
     Environment = "Demo"
     Conference  = "MMSMusic"
     Demo        = "4-State-Management"
-    Purpose     = "Drift-Detection"
+    Purpose     = "Drift-Detection-Target"
   }
 }
 
-# Virtual Network (now includes subnet for VM)
+# Virtual Network
 resource "azurerm_virtual_network" "demo4" {
-  name                = "vnet-demo4-state"
+  name                = "vnet-demo4-${random_string.suffix.result}"
   address_space       = ["10.0.0.0/16"]
   location            = azurerm_resource_group.demo4.location
   resource_group_name = azurerm_resource_group.demo4.name
@@ -203,7 +143,7 @@ resource "azurerm_subnet" "demo4" {
 
 # Public IP for VM
 resource "azurerm_public_ip" "demo4_vm" {
-  name                = "pip-demo4-vm"
+  name                = "pip-demo4-vm-${random_string.suffix.result}"
   location            = azurerm_resource_group.demo4.location
   resource_group_name = azurerm_resource_group.demo4.name
   allocation_method   = "Static"
@@ -219,7 +159,7 @@ resource "azurerm_public_ip" "demo4_vm" {
 
 # Network Interface for VM
 resource "azurerm_network_interface" "demo4_vm" {
-  name                = "nic-demo4-vm"
+  name                = "nic-demo4-vm-${random_string.suffix.result}"
   location            = azurerm_resource_group.demo4.location
   resource_group_name = azurerm_resource_group.demo4.name
 
@@ -238,13 +178,13 @@ resource "azurerm_network_interface" "demo4_vm" {
   }
 }
 
-# Associate the existing NSG to the VM's Network Interface for drift demonstration
+# Associate NSG to Network Interface for drift demonstration
 resource "azurerm_network_interface_security_group_association" "demo4_vm" {
   network_interface_id      = azurerm_network_interface.demo4_vm.id
   network_security_group_id = azurerm_network_security_group.demo4.id
 }
 
-# Windows Virtual Machine for drift demonstration
+# Windows Virtual Machine - DRIFT DEMONSTRATION TARGET
 resource "azurerm_windows_virtual_machine" "demo4" {
   name                = var.vm_name
   location            = azurerm_resource_group.demo4.location
@@ -269,67 +209,74 @@ resource "azurerm_windows_virtual_machine" "demo4" {
     version   = "latest"
   }
 
-  # PowerShell script to install IIS and create a demo web page
+  # PowerShell script to configure the VM for drift demonstration
   custom_data = base64encode(<<-EOF
               <powershell>
               # Install IIS Web Server
               Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServerRole, IIS-WebServer, IIS-CommonHttpFeatures, IIS-HttpErrors, IIS-HttpLogging, IIS-RequestMonitor, IIS-Security, IIS-RequestFiltering, IIS-StaticContent -All
               
-              # Create a simple index page that shows drift detection info
+              # Create drift demonstration web page
               $htmlContent = @"
               <!DOCTYPE html>
               <html>
               <head>
-                  <title>Demo 4 - State Management & Drift Detection</title>
+                  <title>Demo 4 - Configuration Drift Detection</title>
                   <style>
                       body { font-family: Arial, sans-serif; margin: 40px; background-color: #f0f8ff; }
                       .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
                       h1 { color: #2c5aa0; text-align: center; }
                       .section { margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; }
-                      .drift-example { background-color: #fff3cd; border-left: 4px solid #ffc107; }
-                      .success { background-color: #d1edff; border-left: 4px solid #0084ff; }
+                      .drift-target { background-color: #fff3cd; border-left: 4px solid #ffc107; }
+                      .secure { background-color: #d1edff; border-left: 4px solid #0084ff; }
+                      .warning { background-color: #f8d7da; border-left: 4px solid #dc3545; }
                       code { background-color: #e9ecef; padding: 2px 5px; border-radius: 3px; font-family: monospace; }
                   </style>
               </head>
               <body>
                   <div class="container">
                       <h1>🎵 MMS Music Conference 🎵</h1>
-                      <h2>Demo 4: State Management & Drift Detection</h2>
+                      <h2>Demo 4: Configuration Drift Detection</h2>
                       
-                      <div class="section success">
+                      <div class="section secure">
                           <h3>✅ Infrastructure Deployed Successfully!</h3>
-                          <p>This virtual machine was deployed using Terraform and demonstrates state management concepts.</p>
+                          <p>This VM demonstrates Terraform's ability to detect and fix configuration drift.</p>
                           <p><strong>Hostname:</strong> <code>$env:COMPUTERNAME</code></p>
                           <p><strong>OS:</strong> Windows Server 2022</p>
-                          <p><strong>Purpose:</strong> Terraform state and configuration drift demonstration</p>
+                          <p><strong>Deployment:</strong> $(Get-Date)</p>
                       </div>
                       
-                      <div class="section drift-example">
-                          <h3>🔧 Configuration Drift Example</h3>
-                          <p>This VM is part of a demonstration showing how Terraform detects and fixes configuration drift:</p>
-                          <ul>
-                              <li><strong>Network Security Group:</strong> Manual changes to firewall rules</li>
-                              <li><strong>Virtual Machine:</strong> Changes to VM configuration or extensions</li>
-                              <li><strong>Storage Account:</strong> Modifications to blob storage settings</li>
-                          </ul>
-                          <p>Try making manual changes in the Azure Portal, then run <code>terraform plan</code> to see drift detection in action!</p>
+                      <div class="section drift-target">
+                          <h3>🎯 DRIFT DEMONSTRATION TARGETS</h3>
+                          <h4>1. Network Security Group</h4>
+                          <p><strong>Current (Secure):</strong> RDP access from private networks only (10.0.0.0/8)</p>
+                          <p><strong>Manual Change:</strong> Change RDP source to "*" (Any Source) in Azure Portal</p>
+                          
+                          <h4>2. HTTP Rule</h4>
+                          <p><strong>Current:</strong> HTTP port 80 allowed from anywhere</p>
+                          <p><strong>Manual Change:</strong> Delete this rule in Azure Portal</p>
+                      </div>
+                      
+                      <div class="section warning">
+                          <h3>⚠️ DRIFT DETECTION WORKFLOW</h3>
+                          <ol>
+                              <li><strong>Deploy:</strong> <code>terraform apply</code></li>
+                              <li><strong>Manual Change:</strong> Modify NSG rules in Azure Portal</li>
+                              <li><strong>Detect Drift:</strong> <code>terraform plan</code> (shows differences)</li>
+                              <li><strong>Fix Drift:</strong> <code>terraform apply</code> (restores configuration)</li>
+                              <li><strong>Verify:</strong> <code>terraform plan</code> (no changes)</li>
+                          </ol>
                       </div>
                       
                       <div class="section">
                           <h3>🏗️ Infrastructure Components</h3>
                           <ul>
-                              <li>Resource Group with state storage</li>
-                              <li>Virtual Network and Subnet</li>
-                              <li>Network Security Group (drift target)</li>
-                              <li>Virtual Machine (this server)</li>
-                              <li>Application Insights (sensitive data demo)</li>
+                              <li>Resource Group (contains everything for easy cleanup)</li>
                               <li>Storage Account (remote state backend)</li>
+                              <li>Virtual Network & Subnet</li>
+                              <li>Network Security Group (main drift target)</li>
+                              <li>Virtual Machine (this server)</li>
+                              <li>Application Insights (sensitive data example)</li>
                           </ul>
-                      </div>
-                      
-                      <div class="section">
-                          <p><em>This page was generated automatically during VM deployment using PowerShell.</em></p>
-                          <p><strong>Deployment time:</strong> $(Get-Date)</p>
                       </div>
                   </div>
               </body>
@@ -339,7 +286,7 @@ resource "azurerm_windows_virtual_machine" "demo4" {
               # Write the HTML content to the default IIS page
               $htmlContent | Out-File -FilePath "C:\inetpub\wwwroot\index.html" -Encoding UTF8
               
-              # Restart IIS to ensure it's running
+              # Restart IIS
               Restart-Service -Name W3SVC -Force
               </powershell>
               EOF
@@ -353,18 +300,17 @@ resource "azurerm_windows_virtual_machine" "demo4" {
   }
 }
 
-# Application Insights for demonstrating sensitive data in state
+# Application Insights - demonstrates sensitive data in state
 resource "azurerm_application_insights" "demo4" {
-  name                = "ai-demo4-state"
+  name                = "ai-demo4-${random_string.suffix.result}"
   location            = azurerm_resource_group.demo4.location
   resource_group_name = azurerm_resource_group.demo4.name
   application_type    = "web"
-  workspace_id        = "/subscriptions/19381250-e2a4-43b0-b620-663c2a3da3c4/resourceGroups/ai_ai-demo4-state_0b3360bd-84ec-4cb8-8e28-f61173918692_managed/providers/Microsoft.OperationalInsights/workspaces/managed-ai-demo4-state-ws"
 
   tags = {
     Environment = "Demo"
     Conference  = "MMSMusic"
     Demo        = "4-State-Management"
-    Purpose     = "State-Sensitive-Data"
+    Purpose     = "Sensitive-Data-In-State"
   }
 }
