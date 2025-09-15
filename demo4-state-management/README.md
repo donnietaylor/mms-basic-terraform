@@ -13,7 +13,7 @@ This demo focuses on one of Terraform's most critical concepts: **state manageme
 - **Storage Container**: Houses Terraform state files securely
 - **Network Security Group**: The primary "target" resource for drift demonstration
 - **Virtual Network & Subnet**: Supporting infrastructure for VM deployment
-- **Virtual Machine (Linux)**: Ubuntu VM with Nginx web server for comprehensive drift examples
+- **Virtual Machine (Windows)**: Windows Server 2022 VM with IIS web server for comprehensive drift examples
 - **Public IP & Network Interface**: VM connectivity components
 - **Application Insights**: Shows how sensitive data is handled in state
 
@@ -152,7 +152,7 @@ terraform state show azurerm_linux_virtual_machine.demo4
 terraform output application_insights_instrumentation_key
 
 # View VM connection information
-terraform output vm_ssh_connection
+terraform output vm_rdp_connection
 terraform output vm_web_url
 ```
 
@@ -165,7 +165,7 @@ terraform output vm_web_url
    - Open the Network Security Group: `nsg-demo4-drift`
    - Go to **Inbound security rules**
    - **Delete** the HTTP rule (port 80)
-   - **Modify** the SSH rule to allow from `0.0.0.0/0` instead of `10.0.0.0/8`
+   - **Modify** the RDP rule to allow from `0.0.0.0/0` instead of `10.0.0.0/8`
    - **Add** a new rule: HTTPS (port 443) from anywhere
 
 3. **Virtual Machine Changes:**
@@ -208,7 +208,7 @@ terraform output vm_web_url
 # 2. Run workflow with action = "deploy"
 # 3. Verify in Azure Portal that changes are reverted
 # 4. Test VM access again: http://<VM_PUBLIC_IP> should work
-# 5. SSH access: ssh azureuser@<VM_PUBLIC_IP> (with your private key)
+# 5. RDP access: Use connection string from terraform output vm_rdp_connection
 ```
 
 ### Phase 4: Understanding Remote State (No Migration Needed!)
@@ -227,15 +227,15 @@ The virtual machine provides additional opportunities to demonstrate drift:
 **VM Configuration Drift:**
 ```bash
 # Check current VM state
-terraform state show azurerm_linux_virtual_machine.demo4
+terraform state show azurerm_windows_virtual_machine.demo4
 
 # Access the VM web interface
 terraform output vm_web_url
 # Opens: http://<VM_PUBLIC_IP> - Custom demo page explaining state management
 
-# SSH into the VM to see the environment
-terraform output vm_ssh_connection
-# Connects via: ssh azureuser@<VM_PUBLIC_IP>
+# RDP into the VM to see the environment
+terraform output vm_rdp_connection
+# Connects via: mstsc /v:<VM_PUBLIC_IP>
 ```
 
 **Common VM Drift Scenarios:**
@@ -322,23 +322,30 @@ az vm list-ip-addresses -g <resource-group-name> -n <vm-name>
 # Check NSG rules (common cause of connection issues)
 az network nsg rule list -g <resource-group-name> --nsg-name <nsg-name> --output table
 
-# Test SSH connectivity (replace with actual values)
-ssh -i ~/.ssh/demo4_key azureuser@<VM_PUBLIC_IP>
+# Test RDP connectivity (replace with actual values)
+# From Windows: mstsc /v:<VM_PUBLIC_IP>
+# From Linux/Mac: rdesktop <VM_PUBLIC_IP> or use xfreerdp
 
 # Test web server (replace with actual IP)
 curl http://<VM_PUBLIC_IP>
 ```
 
-### SSH Key Issues
+### Admin Password Issues
 ```bash
-# Generate new SSH key pair if needed
-ssh-keygen -t rsa -b 4096 -f ~/.ssh/demo4_key
+# Password requirements for Windows VM:
+# - At least 12 characters long
+# - Must contain uppercase letters (A-Z)  
+# - Must contain lowercase letters (a-z)
+# - Must contain digits (0-9)
+# - Must contain special characters (!@#$%^&*)
 
-# Get public key content for variables.tf
-cat ~/.ssh/demo4_key.pub
+# Example valid password: MySecurePassword123!
 
-# Ensure private key has correct permissions
-chmod 600 ~/.ssh/demo4_key
+# Update password in terraform.tfvars:
+admin_password = "YourSecurePassword123!"
+
+# Or pass as variable:
+terraform apply -var="admin_password=YourSecurePassword123!"
 ```
 
 ## Production Considerations
