@@ -59,7 +59,7 @@ resource "azurerm_network_security_group" "demo4" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "3389"
-    source_address_prefix      = "10.0.0.0/8"  # SECURE - Change to "*" for drift
+    source_address_prefix      = "10.0.0.0/8" # SECURE - Change to "*" for drift
     destination_address_prefix = "*"
   }
 
@@ -188,7 +188,7 @@ resource "azurerm_storage_account" "terraform_state" {
   location                 = azurerm_resource_group.demo4.location
   account_tier             = "Standard"
   account_replication_type = "LRS"
-  
+
   # Enable versioning for state file protection
   blob_properties {
     versioning_enabled = true

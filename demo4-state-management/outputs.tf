@@ -34,7 +34,7 @@ output "application_insights_key" {
 # Remote state setup instructions (for GitHub Actions workflow)
 output "remote_state_setup_instructions" {
   description = "Instructions for setting up remote state backend"
-  value = <<-EOT
+  value       = <<-EOT
 **Remote State Backend Configuration:**
 - Storage Account: ${azurerm_storage_account.terraform_state.name}
 - Container: ${azurerm_storage_container.terraform_state.name}
@@ -55,7 +55,7 @@ terraform init \
 # Drift Demonstration Instructions
 output "drift_demo_instructions" {
   description = "Step-by-step instructions for demonstrating configuration drift"
-  value = <<-EOT
+  value       = <<-EOT
     CONFIGURATION DRIFT DEMONSTRATION:
     
     1. Deploy this configuration via GitHub Actions
