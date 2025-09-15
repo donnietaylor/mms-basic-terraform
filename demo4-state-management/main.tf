@@ -104,6 +104,27 @@ import {
   id = "/subscriptions/19381250-e2a4-43b0-b620-663c2a3da3c4/resourceGroups/rg-mms-demo4-state/providers/Microsoft.Network/virtualNetworks/vnet-demo4-state"
 }
 
+# Import block for existing subnet (to resolve state conflicts)
+# Note: Update the subscription ID if using a different Azure subscription
+import {
+  to = azurerm_subnet.demo4
+  id = "/subscriptions/19381250-e2a4-43b0-b620-663c2a3da3c4/resourceGroups/rg-mms-demo4-state/providers/Microsoft.Network/virtualNetworks/vnet-demo4-state/subnets/subnet-demo4-vm"
+}
+
+# Import block for existing public IP (to resolve state conflicts)
+# Note: Update the subscription ID if using a different Azure subscription
+import {
+  to = azurerm_public_ip.demo4_vm
+  id = "/subscriptions/19381250-e2a4-43b0-b620-663c2a3da3c4/resourceGroups/rg-mms-demo4-state/providers/Microsoft.Network/publicIPAddresses/pip-demo4-vm"
+}
+
+# Import block for existing application insights (to resolve state conflicts)
+# Note: Update the subscription ID if using a different Azure subscription
+import {
+  to = azurerm_application_insights.demo4
+  id = "/subscriptions/19381250-e2a4-43b0-b620-663c2a3da3c4/resourceGroups/rg-mms-demo4-state/providers/Microsoft.Insights/components/ai-demo4-state"
+}
+
 # Storage Container for Terraform state files
 resource "azurerm_storage_container" "state_container" {
   name                  = "tfstate"
