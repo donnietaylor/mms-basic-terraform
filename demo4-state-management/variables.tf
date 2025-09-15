@@ -5,16 +5,15 @@ variable "resource_group_name" {
 }
 
 variable "location" {
-  description = "Azure region for resources"
+  description = "Azure region for resources"  
   type        = string
   default     = "East US"
 }
 
-# VM-related variables
 variable "vm_name" {
   description = "Name of the virtual machine"
   type        = string
-  default     = "vm-demo4-state"
+  default     = "vm-demo4-drift"
 }
 
 variable "vm_size" {
@@ -24,19 +23,13 @@ variable "vm_size" {
 }
 
 variable "admin_username" {
-  description = "Admin username for the virtual machine"
+  description = "Admin username for the VM"
   type        = string
   default     = "azureuser"
 }
 
 variable "admin_password" {
-  description = "Admin password for the virtual machine"
+  description = "Admin password for the VM"
   type        = string
   sensitive   = true
-  # This will need to be provided during deployment
-
-  validation {
-    condition     = length(var.admin_password) >= 12 && can(regex("[A-Z]", var.admin_password)) && can(regex("[a-z]", var.admin_password)) && can(regex("[0-9]", var.admin_password)) && can(regex("[^A-Za-z0-9]", var.admin_password))
-    error_message = "Admin password must be at least 12 characters long and contain uppercase, lowercase, numeric, and special characters."
-  }
 }

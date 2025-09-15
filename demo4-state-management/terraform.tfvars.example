@@ -1,26 +1,28 @@
-# Copy this file to terraform.tfvars and customize as needed
-# terraform.tfvars is ignored by .gitignore to prevent accidentally committing sensitive data
+# Demo 4: Terraform State Management and Configuration Drift Detection
+# Example terraform.tfvars file - copy to terraform.tfvars and customize
 
-# Basic Configuration
+# Resource group name - MUST match what GitHub Actions expects
 resource_group_name = "rg-mms-demo4-state"
-location           = "East US"
 
-# Virtual Machine Configuration
-vm_name        = "vm-demo4-state"
-vm_size        = "Standard_B2s"
-admin_username = "azureuser"
+# Azure region for all resources
+location = "East US"
 
-# Admin Password for VM Access
-# Must be at least 12 characters with uppercase, lowercase, numeric, and special characters
-# Example: "MySecurePassword123!"
-admin_password = "ChangeMe123!@#"
+# Virtual machine configuration
+vm_name = "vm-demo4-drift"
+vm_size = "Standard_B2s"
 
-# Alternative regions you might want to use:
-# location = "West US 2"
-# location = "East US 2" 
-# location = "Central US"
+# VM Administrator credentials
+# IMPORTANT: These will be stored in Terraform state!
+admin_username = "demoadmin"
+admin_password = "P@ssw0rd123!Demo"
 
-# Alternative VM sizes:
-# vm_size = "Standard_B1s"    # Smaller, cheaper
-# vm_size = "Standard_B2ms"   # More memory
-# vm_size = "Standard_D2s_v3" # More powerful
+# DRIFT DEMONSTRATION NOTES:
+# 1. The NSG will have two rules for drift testing:
+#    - RDP rule with source "10.0.0.0/8" (change to "*" for drift)
+#    - HTTP rule on port 80 (delete entirely for drift)
+#
+# 2. Run 'terraform plan' after manual changes to see drift
+#
+# 3. Run 'terraform apply' to correct the drift
+#
+# 4. State contains sensitive data - shows why remote state security matters

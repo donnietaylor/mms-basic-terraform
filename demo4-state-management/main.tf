@@ -1,6 +1,6 @@
-# Demo 4: Terraform State Management and Drift Detection
-# This demo demonstrates how Terraform detects and fixes configuration drift
-# Focus: Network Security Group rules and VM configuration changes
+# Demo 4: Terraform State Management and Configuration Drift Detection
+# This demo shows how Terraform detects and fixes configuration drift
+# Uses remote state from the beginning - NO LOCAL STATE FILES
 
 terraform {
   required_providers {
@@ -14,14 +14,9 @@ terraform {
     }
   }
 
-  # Remote state backend - stored in the same RG for easy cleanup
-  # Backend configuration will be set dynamically during deployment
+  # Remote state backend - configured via GitHub Actions
   backend "azurerm" {
-    # Values set via GitHub Actions:
-    # resource_group_name  = "rg-mms-demo4-state"  
-    # storage_account_name = "stdemo4<random>"
-    # container_name       = "tfstate"
-    # key                  = "demo4.terraform.tfstate"
+    # Values provided dynamically by GitHub Actions workflow
   }
 }
 
@@ -29,62 +24,34 @@ provider "azurerm" {
   features {}
 }
 
-# Random suffix for unique naming to avoid conflicts
+# Random suffix for unique resource names
 resource "random_string" "suffix" {
   length  = 8
   special = false
   upper   = false
 }
 
-# Resource Group - Contains all demo resources including state storage
+# Resource Group - contains all demo resources
 resource "azurerm_resource_group" "demo4" {
   name     = var.resource_group_name
   location = var.location
 
   tags = {
     Environment = "Demo"
-    Conference  = "MMSMusic"  
+    Conference  = "MMSMusic"
     Demo        = "4-State-Management"
     Purpose     = "Drift-Demo"
   }
 }
 
-# Storage Account for remote state backend
-resource "azurerm_storage_account" "state_storage" {
-  name                     = "stdemo4${random_string.suffix.result}"
-  resource_group_name      = azurerm_resource_group.demo4.name
-  location                 = azurerm_resource_group.demo4.location
-  account_tier             = "Standard"
-  account_replication_type = "LRS"
-
-  # Enable blob versioning for state history
-  blob_properties {
-    versioning_enabled = true
-  }
-
-  tags = {
-    Environment = "Demo"
-    Conference  = "MMSMusic"
-    Demo        = "4-State-Management"
-    Purpose     = "Remote-State-Storage"
-  }
-}
-
-# Storage Container for Terraform state files
-resource "azurerm_storage_container" "state_container" {
-  name                  = "tfstate"
-  storage_account_name  = azurerm_storage_account.state_storage.name
-  container_access_type = "private"
-}
-
-# Network Security Group - THE MAIN DRIFT DEMONSTRATION TARGET
+# Network Security Group - MAIN DRIFT DEMONSTRATION TARGET
 resource "azurerm_network_security_group" "demo4" {
   name                = "nsg-demo4-drift-${random_string.suffix.result}"
   location            = azurerm_resource_group.demo4.location
   resource_group_name = azurerm_resource_group.demo4.name
 
-  # RDP rule - RESTRICTED to private networks only (drift target #1)
-  # In Portal: Change source from "10.0.0.0/8" to "*" to show insecure drift
+  # RDP rule - SECURE by default (private networks only)
+  # DRIFT TEST: Manually change source to "*" in Azure Portal
   security_rule {
     name                       = "RDP"
     priority                   = 1001
@@ -93,12 +60,12 @@ resource "azurerm_network_security_group" "demo4" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "3389"
-    source_address_prefix      = "10.0.0.0/8"  # SECURE - Private networks only
+    source_address_prefix      = "10.0.0.0/8"  # SECURE - Change to "*" for drift
     destination_address_prefix = "*"
   }
 
-  # HTTP rule - (drift target #2)  
-  # In Portal: Delete this rule to show missing configuration drift
+  # HTTP rule - will be deleted manually to show drift
+  # DRIFT TEST: Delete this entire rule in Azure Portal
   security_rule {
     name                       = "HTTP"
     priority                   = 1002
@@ -115,7 +82,7 @@ resource "azurerm_network_security_group" "demo4" {
     Environment = "Demo"
     Conference  = "MMSMusic"
     Demo        = "4-State-Management"
-    Purpose     = "Drift-Detection-Target"
+    Purpose     = "Drift-Target"
   }
 }
 
@@ -133,9 +100,9 @@ resource "azurerm_virtual_network" "demo4" {
   }
 }
 
-# Subnet for VM deployment
+# Subnet for VM
 resource "azurerm_subnet" "demo4" {
-  name                 = "subnet-demo4-vm"
+  name                 = "subnet-demo4"
   resource_group_name  = azurerm_resource_group.demo4.name
   virtual_network_name = azurerm_virtual_network.demo4.name
   address_prefixes     = ["10.0.1.0/24"]
@@ -153,7 +120,6 @@ resource "azurerm_public_ip" "demo4_vm" {
     Environment = "Demo"
     Conference  = "MMSMusic"
     Demo        = "4-State-Management"
-    Purpose     = "VM-Public-Access"
   }
 }
 
@@ -174,17 +140,16 @@ resource "azurerm_network_interface" "demo4_vm" {
     Environment = "Demo"
     Conference  = "MMSMusic"
     Demo        = "4-State-Management"
-    Purpose     = "VM-Network-Interface"
   }
 }
 
-# Associate NSG to Network Interface for drift demonstration
+# Associate NSG to Network Interface
 resource "azurerm_network_interface_security_group_association" "demo4_vm" {
   network_interface_id      = azurerm_network_interface.demo4_vm.id
   network_security_group_id = azurerm_network_security_group.demo4.id
 }
 
-# Windows Virtual Machine - DRIFT DEMONSTRATION TARGET
+# Windows VM for drift demonstration
 resource "azurerm_windows_virtual_machine" "demo4" {
   name                = var.vm_name
   location            = azurerm_resource_group.demo4.location
@@ -209,95 +174,40 @@ resource "azurerm_windows_virtual_machine" "demo4" {
     version   = "latest"
   }
 
-  # PowerShell script to configure the VM for drift demonstration
-  custom_data = base64encode(<<-EOF
-              <powershell>
-              # Install IIS Web Server
-              Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServerRole, IIS-WebServer, IIS-CommonHttpFeatures, IIS-HttpErrors, IIS-HttpLogging, IIS-RequestMonitor, IIS-Security, IIS-RequestFiltering, IIS-StaticContent -All
-              
-              # Create drift demonstration web page
-              $htmlContent = @"
-              <!DOCTYPE html>
-              <html>
-              <head>
-                  <title>Demo 4 - Configuration Drift Detection</title>
-                  <style>
-                      body { font-family: Arial, sans-serif; margin: 40px; background-color: #f0f8ff; }
-                      .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-                      h1 { color: #2c5aa0; text-align: center; }
-                      .section { margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; }
-                      .drift-target { background-color: #fff3cd; border-left: 4px solid #ffc107; }
-                      .secure { background-color: #d1edff; border-left: 4px solid #0084ff; }
-                      .warning { background-color: #f8d7da; border-left: 4px solid #dc3545; }
-                      code { background-color: #e9ecef; padding: 2px 5px; border-radius: 3px; font-family: monospace; }
-                  </style>
-              </head>
-              <body>
-                  <div class="container">
-                      <h1>🎵 MMS Music Conference 🎵</h1>
-                      <h2>Demo 4: Configuration Drift Detection</h2>
-                      
-                      <div class="section secure">
-                          <h3>✅ Infrastructure Deployed Successfully!</h3>
-                          <p>This VM demonstrates Terraform's ability to detect and fix configuration drift.</p>
-                          <p><strong>Hostname:</strong> <code>$env:COMPUTERNAME</code></p>
-                          <p><strong>OS:</strong> Windows Server 2022</p>
-                          <p><strong>Deployment:</strong> $(Get-Date)</p>
-                      </div>
-                      
-                      <div class="section drift-target">
-                          <h3>🎯 DRIFT DEMONSTRATION TARGETS</h3>
-                          <h4>1. Network Security Group</h4>
-                          <p><strong>Current (Secure):</strong> RDP access from private networks only (10.0.0.0/8)</p>
-                          <p><strong>Manual Change:</strong> Change RDP source to "*" (Any Source) in Azure Portal</p>
-                          
-                          <h4>2. HTTP Rule</h4>
-                          <p><strong>Current:</strong> HTTP port 80 allowed from anywhere</p>
-                          <p><strong>Manual Change:</strong> Delete this rule in Azure Portal</p>
-                      </div>
-                      
-                      <div class="section warning">
-                          <h3>⚠️ DRIFT DETECTION WORKFLOW</h3>
-                          <ol>
-                              <li><strong>Deploy:</strong> <code>terraform apply</code></li>
-                              <li><strong>Manual Change:</strong> Modify NSG rules in Azure Portal</li>
-                              <li><strong>Detect Drift:</strong> <code>terraform plan</code> (shows differences)</li>
-                              <li><strong>Fix Drift:</strong> <code>terraform apply</code> (restores configuration)</li>
-                              <li><strong>Verify:</strong> <code>terraform plan</code> (no changes)</li>
-                          </ol>
-                      </div>
-                      
-                      <div class="section">
-                          <h3>🏗️ Infrastructure Components</h3>
-                          <ul>
-                              <li>Resource Group (contains everything for easy cleanup)</li>
-                              <li>Storage Account (remote state backend)</li>
-                              <li>Virtual Network & Subnet</li>
-                              <li>Network Security Group (main drift target)</li>
-                              <li>Virtual Machine (this server)</li>
-                              <li>Application Insights (sensitive data example)</li>
-                          </ul>
-                      </div>
-                  </div>
-              </body>
-              </html>
-"@
-              
-              # Write the HTML content to the default IIS page
-              $htmlContent | Out-File -FilePath "C:\inetpub\wwwroot\index.html" -Encoding UTF8
-              
-              # Restart IIS
-              Restart-Service -Name W3SVC -Force
-              </powershell>
-              EOF
-  )
+  tags = {
+    Environment = "Demo"
+    Conference  = "MMSMusic"
+    Demo        = "4-State-Management"
+    Purpose     = "Drift-Target"
+  }
+}
+
+# Storage Account for remote state backend (bootstrap process)
+resource "azurerm_storage_account" "terraform_state" {
+  name                     = "tfstate${random_string.suffix.result}"
+  resource_group_name      = azurerm_resource_group.demo4.name
+  location                 = azurerm_resource_group.demo4.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+  
+  # Enable versioning for state file protection
+  blob_properties {
+    versioning_enabled = true
+  }
 
   tags = {
     Environment = "Demo"
     Conference  = "MMSMusic"
     Demo        = "4-State-Management"
-    Purpose     = "Drift-Detection-Target"
+    Purpose     = "Remote-State-Storage"
   }
+}
+
+# Storage Container for Terraform state files
+resource "azurerm_storage_container" "terraform_state" {
+  name                  = "tfstate"
+  storage_account_id    = azurerm_storage_account.terraform_state.id
+  container_access_type = "private"
 }
 
 # Application Insights - demonstrates sensitive data in state
@@ -311,6 +221,6 @@ resource "azurerm_application_insights" "demo4" {
     Environment = "Demo"
     Conference  = "MMSMusic"
     Demo        = "4-State-Management"
-    Purpose     = "Sensitive-Data-In-State"
+    Purpose     = "Sensitive-Data-Demo"
   }
 }

@@ -20,7 +20,7 @@ on:
       admin_password:
         description: 'Admin Password for VM access (required for deploy action - min 12 chars with upper, lower, numeric, special)'
         required: false
-        default: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7XtJyRVA+a2+kTU8o1e1qDfGhR8hVKJNyMYaXtH7wJF0tU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL demo4-vm-key'
+        default: 'ComplexPassw0rd!'
         type: string
 
 env:
