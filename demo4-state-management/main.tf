@@ -10,9 +10,13 @@ terraform {
     }
   }
 
-  # Note: Backend configuration is handled by GitHub Actions workflow
-  # The workflow will either use local state for bootstrap or configure
-  # remote state backend dynamically via -backend-config parameters
+  # Remote state backend - connects to same state as GitHub Actions
+  backend "azurerm" {
+    resource_group_name  = "rg-mms-demo4-state"
+    storage_account_name = "statemmsdemo4state"
+    container_name       = "tfstate"
+    key                  = "demo4.tfstate"
+  }
 }
 
 provider "azurerm" {
