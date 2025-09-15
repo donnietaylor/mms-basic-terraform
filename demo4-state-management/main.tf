@@ -151,7 +151,7 @@ resource "azurerm_network_security_group" "demo4" {
   }
 }
 
-# Virtual Network (simple one for completeness)
+# Virtual Network (now includes subnet for VM)
 resource "azurerm_virtual_network" "demo4" {
   name                = "vnet-demo4-state"
   address_space       = ["10.0.0.0/16"]
@@ -162,6 +162,169 @@ resource "azurerm_virtual_network" "demo4" {
     Environment = "Demo"
     Conference  = "MMSMusic"
     Demo        = "4-State-Management"
+  }
+}
+
+# Subnet for VM deployment
+resource "azurerm_subnet" "demo4" {
+  name                 = "subnet-demo4-vm"
+  resource_group_name  = azurerm_resource_group.demo4.name
+  virtual_network_name = azurerm_virtual_network.demo4.name
+  address_prefixes     = ["10.0.1.0/24"]
+}
+
+# Public IP for VM
+resource "azurerm_public_ip" "demo4_vm" {
+  name                = "pip-demo4-vm"
+  location            = azurerm_resource_group.demo4.location
+  resource_group_name = azurerm_resource_group.demo4.name
+  allocation_method   = "Static"
+  sku                 = "Standard"
+
+  tags = {
+    Environment = "Demo"
+    Conference  = "MMSMusic"
+    Demo        = "4-State-Management"
+    Purpose     = "VM-Public-Access"
+  }
+}
+
+# Network Interface for VM
+resource "azurerm_network_interface" "demo4_vm" {
+  name                = "nic-demo4-vm"
+  location            = azurerm_resource_group.demo4.location
+  resource_group_name = azurerm_resource_group.demo4.name
+
+  ip_configuration {
+    name                          = "internal"
+    subnet_id                     = azurerm_subnet.demo4.id
+    private_ip_address_allocation = "Dynamic"
+    public_ip_address_id          = azurerm_public_ip.demo4_vm.id
+  }
+
+  tags = {
+    Environment = "Demo"
+    Conference  = "MMSMusic"
+    Demo        = "4-State-Management"
+    Purpose     = "VM-Network-Interface"
+  }
+}
+
+# Associate the existing NSG to the VM's Network Interface for drift demonstration
+resource "azurerm_network_interface_security_group_association" "demo4_vm" {
+  network_interface_id      = azurerm_network_interface.demo4_vm.id
+  network_security_group_id = azurerm_network_security_group.demo4.id
+}
+
+# Linux Virtual Machine for drift demonstration
+resource "azurerm_linux_virtual_machine" "demo4" {
+  name                            = var.vm_name
+  location                        = azurerm_resource_group.demo4.location
+  resource_group_name             = azurerm_resource_group.demo4.name
+  size                            = var.vm_size
+  admin_username                  = var.admin_username
+  disable_password_authentication = true
+
+  network_interface_ids = [
+    azurerm_network_interface.demo4_vm.id,
+  ]
+
+  admin_ssh_key {
+    username   = var.admin_username
+    public_key = var.ssh_public_key
+  }
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Premium_LRS"
+  }
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "0001-com-ubuntu-server-jammy"
+    sku       = "22_04-lts-gen2"
+    version   = "latest"
+  }
+
+  # Cloud-init script to install nginx and create a simple web page
+  custom_data = base64encode(<<-EOF
+              #!/bin/bash
+              apt-get update
+              apt-get install -y nginx
+              systemctl start nginx
+              systemctl enable nginx
+              
+              # Create a simple index page that shows drift detection info
+              cat > /var/www/html/index.html << 'HTML'
+              <!DOCTYPE html>
+              <html>
+              <head>
+                  <title>Demo 4 - State Management & Drift Detection</title>
+                  <style>
+                      body { font-family: Arial, sans-serif; margin: 40px; background-color: #f0f8ff; }
+                      .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+                      h1 { color: #2c5aa0; text-align: center; }
+                      .section { margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; }
+                      .drift-example { background-color: #fff3cd; border-left: 4px solid #ffc107; }
+                      .success { background-color: #d1edff; border-left: 4px solid #0084ff; }
+                      code { background-color: #e9ecef; padding: 2px 5px; border-radius: 3px; font-family: monospace; }
+                  </style>
+              </head>
+              <body>
+                  <div class="container">
+                      <h1>🎵 MMS Music Conference 🎵</h1>
+                      <h2>Demo 4: State Management & Drift Detection</h2>
+                      
+                      <div class="section success">
+                          <h3>✅ Infrastructure Deployed Successfully!</h3>
+                          <p>This virtual machine was deployed using Terraform and demonstrates state management concepts.</p>
+                          <p><strong>Hostname:</strong> <code>$(hostname)</code></p>
+                          <p><strong>OS:</strong> Ubuntu 22.04 LTS</p>
+                          <p><strong>Purpose:</strong> Terraform state and configuration drift demonstration</p>
+                      </div>
+                      
+                      <div class="section drift-example">
+                          <h3>🔧 Configuration Drift Example</h3>
+                          <p>This VM is part of a demonstration showing how Terraform detects and fixes configuration drift:</p>
+                          <ul>
+                              <li><strong>Network Security Group:</strong> Manual changes to firewall rules</li>
+                              <li><strong>Virtual Machine:</strong> Changes to VM configuration or extensions</li>
+                              <li><strong>Storage Account:</strong> Modifications to blob storage settings</li>
+                          </ul>
+                          <p>Try making manual changes in the Azure Portal, then run <code>terraform plan</code> to see drift detection in action!</p>
+                      </div>
+                      
+                      <div class="section">
+                          <h3>🏗️ Infrastructure Components</h3>
+                          <ul>
+                              <li>Resource Group with state storage</li>
+                              <li>Virtual Network and Subnet</li>
+                              <li>Network Security Group (drift target)</li>
+                              <li>Virtual Machine (this server)</li>
+                              <li>Application Insights (sensitive data demo)</li>
+                              <li>Storage Account (remote state backend)</li>
+                          </ul>
+                      </div>
+                      
+                      <div class="section">
+                          <p><em>This page was generated automatically during VM deployment using cloud-init.</em></p>
+                          <p><strong>Deployment time:</strong> $(date)</p>
+                      </div>
+                  </div>
+              </body>
+              </html>
+              HTML
+              
+              # Restart nginx to ensure it's running
+              systemctl restart nginx
+              EOF
+  )
+
+  tags = {
+    Environment = "Demo"
+    Conference  = "MMSMusic"
+    Demo        = "4-State-Management"
+    Purpose     = "Drift-Detection-Target"
   }
 }
 

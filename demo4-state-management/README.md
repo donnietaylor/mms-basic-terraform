@@ -11,8 +11,10 @@ This demo focuses on one of Terraform's most critical concepts: **state manageme
 - **Resource Group**: Container for all demo resources and state storage  
 - **Storage Account**: Demonstrates remote state backend best practices
 - **Storage Container**: Houses Terraform state files securely
-- **Network Security Group**: The "target" resource for drift demonstration
-- **Virtual Network**: Supporting infrastructure  
+- **Network Security Group**: The primary "target" resource for drift demonstration
+- **Virtual Network & Subnet**: Supporting infrastructure for VM deployment
+- **Virtual Machine (Linux)**: Ubuntu VM with Nginx web server for comprehensive drift examples
+- **Public IP & Network Interface**: VM connectivity components
 - **Application Insights**: Shows how sensitive data is handled in state
 
 ## Prerequisites
@@ -142,22 +144,40 @@ terraform show
 # List all tracked resources
 terraform state list
 
-# Get details about a specific resource
+# Get details about specific resources
 terraform state show azurerm_network_security_group.demo4
+terraform state show azurerm_linux_virtual_machine.demo4
 
 # See sensitive outputs (requires confirmation)
 terraform output application_insights_instrumentation_key
+
+# View VM connection information
+terraform output vm_ssh_connection
+terraform output vm_web_url
 ```
 
 ### Phase 3: Demonstrate Configuration Drift
 
 **Step 1: Make Manual Changes in Azure Portal**
 1. Navigate to Azure Portal → Resource Groups → `rg-mms-demo4-state`
-2. Open the Network Security Group: `nsg-demo4-drift`
-3. Go to **Inbound security rules**
-4. **Delete** the HTTP rule (port 80)
-5. **Modify** the SSH rule to allow from `0.0.0.0/0` instead of `10.0.0.0/8`
-6. **Add** a new rule: HTTPS (port 443) from anywhere
+
+2. **Network Security Group Changes:**
+   - Open the Network Security Group: `nsg-demo4-drift`
+   - Go to **Inbound security rules**
+   - **Delete** the HTTP rule (port 80)
+   - **Modify** the SSH rule to allow from `0.0.0.0/0` instead of `10.0.0.0/8`
+   - **Add** a new rule: HTTPS (port 443) from anywhere
+
+3. **Virtual Machine Changes:**
+   - Open the Virtual Machine: `vm-demo4-state`
+   - Go to **Configuration** → Change VM size (e.g., from Standard_B2s to Standard_B1s)
+   - Go to **Tags** → Add or modify tags
+   - Go to **Boot diagnostics** → Enable/disable or change storage account
+
+4. **Test the deployed web server:**
+   - Get VM public IP: `terraform output vm_public_ip`
+   - Visit: `http://<VM_PUBLIC_IP>` to see the demo web page
+   - Note: If you can't access it, the NSG changes above might have blocked HTTP traffic!
 
 **Step 2: Detect Drift with GitHub Workflows**
 ```bash
@@ -174,6 +194,11 @@ terraform output application_insights_instrumentation_key
 #     - name = "HTTPS" (manual rule to be removed)
 # ~ security_rule {
 #     ~ source_address_prefix = "0.0.0.0/0" -> "10.0.0.0/8" (drift fix)
+
+# ~ azurerm_linux_virtual_machine.demo4 will be updated in-place
+# ~ size = "Standard_B1s" -> "Standard_B2s" (size change detected)
+
+# And potentially other drift depending on what you changed manually
 ```
 
 **Step 3: Fix Drift with GitHub Workflows** 
@@ -182,6 +207,8 @@ terraform output application_insights_instrumentation_key
 # 1. Go to Actions → Demo 4: State Management  
 # 2. Run workflow with action = "deploy"
 # 3. Verify in Azure Portal that changes are reverted
+# 4. Test VM access again: http://<VM_PUBLIC_IP> should work
+# 5. SSH access: ssh azureuser@<VM_PUBLIC_IP> (with your private key)
 ```
 
 ### Phase 4: Understanding Remote State (No Migration Needed!)
@@ -193,6 +220,30 @@ terraform output remote_state_setup_instructions
 # State is automatically stored in Azure Storage Account
 # and accessible to your team and CI/CD pipelines
 ```
+
+### Phase 5: VM-Specific Drift Examples
+The virtual machine provides additional opportunities to demonstrate drift:
+
+**VM Configuration Drift:**
+```bash
+# Check current VM state
+terraform state show azurerm_linux_virtual_machine.demo4
+
+# Access the VM web interface
+terraform output vm_web_url
+# Opens: http://<VM_PUBLIC_IP> - Custom demo page explaining state management
+
+# SSH into the VM to see the environment
+terraform output vm_ssh_connection
+# Connects via: ssh azureuser@<VM_PUBLIC_IP>
+```
+
+**Common VM Drift Scenarios:**
+1. **Size Changes**: Manually resize VM in portal, Terraform detects size drift
+2. **Tag Modifications**: Add/remove tags manually, plan shows tag drift
+3. **Boot Diagnostics**: Enable/disable in portal, creates configuration drift
+4. **Network Configuration**: Modify NIC settings, Terraform detects changes
+5. **Extension Installation**: Install VM extensions manually, state becomes inconsistent
 
 ## Key Learning Points
 
@@ -260,6 +311,36 @@ az account show
 az storage account show -n <storage-account-name> -g <resource-group-name>
 ```
 
+### VM Access Issues
+```bash
+# Check VM status
+az vm show -g <resource-group-name> -n <vm-name> --query "powerState"
+
+# Get VM public IP
+az vm list-ip-addresses -g <resource-group-name> -n <vm-name>
+
+# Check NSG rules (common cause of connection issues)
+az network nsg rule list -g <resource-group-name> --nsg-name <nsg-name> --output table
+
+# Test SSH connectivity (replace with actual values)
+ssh -i ~/.ssh/demo4_key azureuser@<VM_PUBLIC_IP>
+
+# Test web server (replace with actual IP)
+curl http://<VM_PUBLIC_IP>
+```
+
+### SSH Key Issues
+```bash
+# Generate new SSH key pair if needed
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/demo4_key
+
+# Get public key content for variables.tf
+cat ~/.ssh/demo4_key.pub
+
+# Ensure private key has correct permissions
+chmod 600 ~/.ssh/demo4_key
+```
+
 ## Production Considerations
 
 ### State Security
@@ -283,8 +364,11 @@ az storage account show -n <storage-account-name> -g <resource-group-name>
 ## Cost Considerations
 - Storage Account: ~$1-2/month for state storage
 - Application Insights: Free tier available
+- Virtual Machine: ~$15-30/month (Standard_B2s in East US)
+- Public IP: ~$3-4/month for static IP
 - Network resources: No additional charges
 - **Always destroy demo resources** when finished: `terraform destroy`
+- **Cost optimization**: Use Standard_B1s VM size for $8-15/month instead
 
 ## Next Steps
 - Explore **Terraform Cloud** for enhanced state management
@@ -296,9 +380,11 @@ az storage account show -n <storage-account-name> -g <resource-group-name>
 ## Real-World Applications
 This demo simulates common production scenarios:
 - 👨‍💼 **Operations team** manually modifies firewall rules for troubleshooting
-- 🔧 **Platform team** runs Terraform to restore compliance
+- 🖥️ **System administrators** resize VMs or modify configurations during incidents
+- 🔧 **Platform team** runs Terraform to restore compliance and standardization
 - 🚨 **Security team** detects unauthorized changes through drift detection
-- 📊 **DevOps team** uses state management for change tracking
+- 📊 **DevOps team** uses state management for change tracking and infrastructure auditing
+- 🌐 **Web team** deploys applications and needs consistent server configurations
 
 ## Security Features Demonstrated
 - ✅ Remote state encryption at rest

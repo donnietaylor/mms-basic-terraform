@@ -68,7 +68,7 @@ terraform destroy
 ### Demo 4: State Management
 **Perfect for**: Understanding Terraform's core concepts
 - **What you'll learn**: State storage, drift detection, remote backends, state security
-- **What you'll deploy**: State infrastructure with drift demonstration resources
+- **What you'll deploy**: State infrastructure with comprehensive drift demonstration resources including VM
 - **Key concepts**: Remote state, configuration drift, state locking, sensitive data handling
 
 ## 🔧 Required Azure Secrets (for GitHub Actions)
@@ -147,8 +147,11 @@ Resource Group
 Resource Group (State Storage)
 ├── Storage Account (Remote State Backend)
 │   └── Blob Container (tfstate files)
-├── Network Security Group (Drift Demo)
-├── Virtual Network (Supporting Infrastructure)
+├── Virtual Network & Subnet (VM Infrastructure)
+├── Linux Virtual Machine (Ubuntu + Nginx)
+│   ├── Public IP (External Access)
+│   └── Network Interface (VM Connectivity)
+├── Network Security Group (Drift Demo Target)
 └── Application Insights (Sensitive Data Demo)
 ```
 
