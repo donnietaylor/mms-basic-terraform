@@ -17,6 +17,11 @@ on:
         required: false
         default: 'rg-mms-demo4-state'
         type: string
+      ssh_public_key:
+        description: 'SSH Public Key for VM access (required for deploy action)'
+        required: false
+        default: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7XtJyRVA+a2+kTU8o1e1qDfGhR8hVKJNyMYaXtH7wJF0tU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL demo4-vm-key'
+        type: string
 
 env:
   TF_VERSION: '1.5.0'
@@ -77,6 +82,7 @@ jobs:
       run: |
         terraform plan \
           -var="resource_group_name=${{ github.event.inputs.resource_group_name }}" \
+          -var="ssh_public_key=${{ github.event.inputs.ssh_public_key }}" \
           -out=tfplan
       env:
         ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
@@ -88,7 +94,8 @@ jobs:
       if: github.event.inputs.action == 'deploy'
       run: |
         terraform apply -auto-approve \
-          -var="resource_group_name=${{ github.event.inputs.resource_group_name }}"
+          -var="resource_group_name=${{ github.event.inputs.resource_group_name }}" \
+          -var="ssh_public_key=${{ github.event.inputs.ssh_public_key }}"
       env:
         ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
         ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
@@ -99,7 +106,8 @@ jobs:
       if: github.event.inputs.action == 'destroy'
       run: |
         terraform destroy -auto-approve \
-          -var="resource_group_name=${{ github.event.inputs.resource_group_name }}"
+          -var="resource_group_name=${{ github.event.inputs.resource_group_name }}" \
+          -var="ssh_public_key=${{ github.event.inputs.ssh_public_key }}"
       env:
         ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
         ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
@@ -115,8 +123,10 @@ jobs:
         echo "- Resource Group (for state storage)" >> $GITHUB_STEP_SUMMARY
         echo "- Storage Account (remote state backend)" >> $GITHUB_STEP_SUMMARY
         echo "- Storage Container (state file storage)" >> $GITHUB_STEP_SUMMARY
+        echo "- Virtual Machine (Ubuntu + Nginx web server)" >> $GITHUB_STEP_SUMMARY
         echo "- Network Security Group (drift demo target)" >> $GITHUB_STEP_SUMMARY
-        echo "- Virtual Network (supporting infrastructure)" >> $GITHUB_STEP_SUMMARY
+        echo "- Virtual Network & Subnet (VM infrastructure)" >> $GITHUB_STEP_SUMMARY
+        echo "- Public IP & Network Interface (VM connectivity)" >> $GITHUB_STEP_SUMMARY
         echo "- Application Insights (sensitive data example)" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### State Management:" >> $GITHUB_STEP_SUMMARY
@@ -137,12 +147,23 @@ jobs:
         echo "- ✅ Experience state security best practices" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Learn import blocks for existing resources" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### VM Access Information:" >> $GITHUB_STEP_SUMMARY
+        VM_IP=$(terraform output -raw vm_public_ip 2>/dev/null || echo "pending")
+        if [ "$VM_IP" != "pending" ]; then
+          echo "- **Web Server**: http://$VM_IP" >> $GITHUB_STEP_SUMMARY  
+          echo "- **SSH Access**: ssh azureuser@$VM_IP" >> $GITHUB_STEP_SUMMARY
+          echo "- **VM Status**: Check Azure Portal for boot status" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- VM IP address is still being assigned..." >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Next Steps for Drift Demo:" >> $GITHUB_STEP_SUMMARY
         echo "1. Go to Azure Portal → Resource Groups → ${{ github.event.inputs.resource_group_name }}" >> $GITHUB_STEP_SUMMARY
         echo "2. Open Network Security Group: nsg-demo4-drift" >> $GITHUB_STEP_SUMMARY
         echo "3. Modify the security rules manually" >> $GITHUB_STEP_SUMMARY
-        echo "4. Run this workflow again with 'plan' action to see drift detection" >> $GITHUB_STEP_SUMMARY
-        echo "5. Run with 'deploy' action to fix the drift" >> $GITHUB_STEP_SUMMARY
+        echo "4. Optionally modify the VM configuration (size, tags, etc.)" >> $GITHUB_STEP_SUMMARY
+        echo "5. Run this workflow again with 'plan' action to see drift detection" >> $GITHUB_STEP_SUMMARY
+        echo "6. Run with 'deploy' action to fix the drift" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Remote State Configuration:" >> $GITHUB_STEP_SUMMARY
         terraform output -raw remote_state_setup_instructions | sed 's/^/    /' >> $GITHUB_STEP_SUMMARY
