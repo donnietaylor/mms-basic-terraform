@@ -30,24 +30,16 @@ resource "random_string" "suffix" {
   upper   = false
 }
 
-# Resource Group - contains all demo resources
-resource "azurerm_resource_group" "demo4" {
-  name     = var.resource_group_name
-  location = var.location
-
-  tags = {
-    Environment = "Demo"
-    Conference  = "MMSMusic"
-    Demo        = "4-State-Management"
-    Purpose     = "Drift-Demo"
-  }
+# Data source to reference existing resource group
+data "azurerm_resource_group" "demo4" {
+  name = var.resource_group_name
 }
 
 # Network Security Group - MAIN DRIFT DEMONSTRATION TARGET
 resource "azurerm_network_security_group" "demo4" {
   name                = "nsg-demo4-drift-${random_string.suffix.result}"
-  location            = azurerm_resource_group.demo4.location
-  resource_group_name = azurerm_resource_group.demo4.name
+  location            = data.azurerm_resource_group.demo4.location
+  resource_group_name = data.azurerm_resource_group.demo4.name
 
   # RDP rule - SECURE by default (private networks only)
   # DRIFT TEST: Manually change source to "*" in Azure Portal
@@ -89,8 +81,8 @@ resource "azurerm_network_security_group" "demo4" {
 resource "azurerm_virtual_network" "demo4" {
   name                = "vnet-demo4-${random_string.suffix.result}"
   address_space       = ["10.0.0.0/16"]
-  location            = azurerm_resource_group.demo4.location
-  resource_group_name = azurerm_resource_group.demo4.name
+  location            = data.azurerm_resource_group.demo4.location
+  resource_group_name = data.azurerm_resource_group.demo4.name
 
   tags = {
     Environment = "Demo"
@@ -102,7 +94,7 @@ resource "azurerm_virtual_network" "demo4" {
 # Subnet for VM
 resource "azurerm_subnet" "demo4" {
   name                 = "subnet-demo4"
-  resource_group_name  = azurerm_resource_group.demo4.name
+  resource_group_name  = data.azurerm_resource_group.demo4.name
   virtual_network_name = azurerm_virtual_network.demo4.name
   address_prefixes     = ["10.0.1.0/24"]
 }
@@ -110,8 +102,8 @@ resource "azurerm_subnet" "demo4" {
 # Public IP for VM
 resource "azurerm_public_ip" "demo4_vm" {
   name                = "pip-demo4-vm-${random_string.suffix.result}"
-  location            = azurerm_resource_group.demo4.location
-  resource_group_name = azurerm_resource_group.demo4.name
+  location            = data.azurerm_resource_group.demo4.location
+  resource_group_name = data.azurerm_resource_group.demo4.name
   allocation_method   = "Static"
   sku                 = "Standard"
 
@@ -125,8 +117,8 @@ resource "azurerm_public_ip" "demo4_vm" {
 # Network Interface for VM
 resource "azurerm_network_interface" "demo4_vm" {
   name                = "nic-demo4-vm-${random_string.suffix.result}"
-  location            = azurerm_resource_group.demo4.location
-  resource_group_name = azurerm_resource_group.demo4.name
+  location            = data.azurerm_resource_group.demo4.location
+  resource_group_name = data.azurerm_resource_group.demo4.name
 
   ip_configuration {
     name                          = "internal"
@@ -151,8 +143,8 @@ resource "azurerm_network_interface_security_group_association" "demo4_vm" {
 # Windows VM for drift demonstration
 resource "azurerm_windows_virtual_machine" "demo4" {
   name                = var.vm_name
-  location            = azurerm_resource_group.demo4.location
-  resource_group_name = azurerm_resource_group.demo4.name
+  location            = data.azurerm_resource_group.demo4.location
+  resource_group_name = data.azurerm_resource_group.demo4.name
   size                = var.vm_size
   admin_username      = var.admin_username
   admin_password      = var.admin_password
@@ -212,8 +204,8 @@ resource "azurerm_storage_container" "terraform_state" {
 # Application Insights - demonstrates sensitive data in state
 resource "azurerm_application_insights" "demo4" {
   name                = "ai-demo4-${random_string.suffix.result}"
-  location            = azurerm_resource_group.demo4.location
-  resource_group_name = azurerm_resource_group.demo4.name
+  location            = data.azurerm_resource_group.demo4.location
+  resource_group_name = data.azurerm_resource_group.demo4.name
   application_type    = "web"
 
   tags = {

@@ -3,7 +3,7 @@
 # Resource Group ID
 output "resource_group_id" {
   description = "ID of the resource group containing all demo resources"
-  value       = azurerm_resource_group.demo4.id
+  value       = data.azurerm_resource_group.demo4.id
 }
 
 # Network Security Group ID - Main drift target
@@ -36,19 +36,11 @@ output "remote_state_setup_instructions" {
   description = "Instructions for setting up remote state backend"
   value       = <<-EOT
 **Remote State Backend Configuration:**
-- Storage Account: ${azurerm_storage_account.terraform_state.name}
-- Container: ${azurerm_storage_container.terraform_state.name}
-- Resource Group: ${azurerm_resource_group.demo4.name}
+- Resource Group: ${data.azurerm_resource_group.demo4.name}
 - State Key: demo4.tfstate
+- Storage account and container already configured in GitHub Actions workflow
 
-**Next time, initialize with:**
-```bash
-terraform init \
-  -backend-config="resource_group_name=${azurerm_resource_group.demo4.name}" \
-  -backend-config="storage_account_name=${azurerm_storage_account.terraform_state.name}" \
-  -backend-config="container_name=${azurerm_storage_container.terraform_state.name}" \
-  -backend-config="key=demo4.tfstate"
-```
+**State is managed automatically by GitHub Actions workflow**
   EOT
 }
 
@@ -70,9 +62,9 @@ output "drift_demo_instructions" {
     
     5. Run GitHub Actions workflow with 'deploy' action to fix drift
     
-    6. State is stored remotely in: ${azurerm_storage_account.terraform_state.name}
+    6. State is stored remotely and managed by GitHub Actions workflow
     
-    Resource Group: ${azurerm_resource_group.demo4.name}
+    Resource Group: ${data.azurerm_resource_group.demo4.name}
     VM Public IP: ${azurerm_public_ip.demo4_vm.ip_address}
   EOT
 }
