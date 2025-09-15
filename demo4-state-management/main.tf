@@ -173,34 +173,6 @@ resource "azurerm_windows_virtual_machine" "demo4" {
   }
 }
 
-# Storage Account for remote state backend (bootstrap process)
-resource "azurerm_storage_account" "terraform_state" {
-  name                     = "tfstate${random_string.suffix.result}"
-  resource_group_name      = azurerm_resource_group.demo4.name
-  location                 = azurerm_resource_group.demo4.location
-  account_tier             = "Standard"
-  account_replication_type = "LRS"
-
-  # Enable versioning for state file protection
-  blob_properties {
-    versioning_enabled = true
-  }
-
-  tags = {
-    Environment = "Demo"
-    Conference  = "MMSMusic"
-    Demo        = "4-State-Management"
-    Purpose     = "Remote-State-Storage"
-  }
-}
-
-# Storage Container for Terraform state files
-resource "azurerm_storage_container" "terraform_state" {
-  name                  = "tfstate"
-  storage_account_name  = azurerm_storage_account.terraform_state.name
-  container_access_type = "private"
-}
-
 # Application Insights - demonstrates sensitive data in state
 resource "azurerm_application_insights" "demo4" {
   name                = "ai-demo4-${random_string.suffix.result}"
