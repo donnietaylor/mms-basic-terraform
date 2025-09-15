@@ -8,10 +8,6 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~>3.0"
     }
-    random = {
-      source  = "hashicorp/random"
-      version = "~>3.1"
-    }
   }
 
   # Note: Backend configuration is handled by GitHub Actions workflow
@@ -23,13 +19,6 @@ provider "azurerm" {
   features {}
 }
 
-# Random suffix for unique resource names
-resource "random_string" "suffix" {
-  length  = 8
-  special = false
-  upper   = false
-}
-
 # Data source to reference existing resource group
 data "azurerm_resource_group" "demo4" {
   name = var.resource_group_name
@@ -37,7 +26,7 @@ data "azurerm_resource_group" "demo4" {
 
 # Network Security Group - MAIN DRIFT DEMONSTRATION TARGET
 resource "azurerm_network_security_group" "demo4" {
-  name                = "nsg-demo4-drift-${random_string.suffix.result}"
+  name                = "nsg-demo4-drift"
   location            = data.azurerm_resource_group.demo4.location
   resource_group_name = data.azurerm_resource_group.demo4.name
 
@@ -79,7 +68,7 @@ resource "azurerm_network_security_group" "demo4" {
 
 # Virtual Network
 resource "azurerm_virtual_network" "demo4" {
-  name                = "vnet-demo4-${random_string.suffix.result}"
+  name                = "vnet-demo4"
   address_space       = ["10.0.0.0/16"]
   location            = data.azurerm_resource_group.demo4.location
   resource_group_name = data.azurerm_resource_group.demo4.name
@@ -101,7 +90,7 @@ resource "azurerm_subnet" "demo4" {
 
 # Public IP for VM
 resource "azurerm_public_ip" "demo4_vm" {
-  name                = "pip-demo4-vm-${random_string.suffix.result}"
+  name                = "pip-demo4-vm"
   location            = data.azurerm_resource_group.demo4.location
   resource_group_name = data.azurerm_resource_group.demo4.name
   allocation_method   = "Static"
@@ -116,7 +105,7 @@ resource "azurerm_public_ip" "demo4_vm" {
 
 # Network Interface for VM
 resource "azurerm_network_interface" "demo4_vm" {
-  name                = "nic-demo4-vm-${random_string.suffix.result}"
+  name                = "nic-demo4-vm"
   location            = data.azurerm_resource_group.demo4.location
   resource_group_name = data.azurerm_resource_group.demo4.name
 
@@ -175,7 +164,7 @@ resource "azurerm_windows_virtual_machine" "demo4" {
 
 # Application Insights - demonstrates sensitive data in state
 resource "azurerm_application_insights" "demo4" {
-  name                = "ai-demo4-${random_string.suffix.result}"
+  name                = "ai-demo4"
   location            = data.azurerm_resource_group.demo4.location
   resource_group_name = data.azurerm_resource_group.demo4.name
   application_type    = "web"
