@@ -54,22 +54,14 @@ jobs:
 
     - name: Terraform Init
       run: |
-        # Check if we need to bootstrap (first time deployment)
-        # Try to initialize with remote backend first, fall back to local if storage doesn't exist
-        echo "Attempting to initialize with remote backend..."
-        
-        if terraform init; then
-          echo "Successfully initialized with remote backend"
-          echo "BACKEND_TYPE=remote" >> $GITHUB_ENV
-        else
-          echo "Remote backend not available, initializing for bootstrap..."
-          # Remove backend configuration temporarily for bootstrap
-          cp main.tf main.tf.backup
-          sed '/backend "azurerm"/,/}/d' main.tf.backup > main.tf
-          terraform init
-          echo "BACKEND_TYPE=local" >> $GITHUB_ENV
-          echo "This is a bootstrap run - will create storage account and migrate to remote state"
-        fi
+        # Initialize with remote backend
+        echo "Initializing with remote state backend..."
+        terraform init \
+          -backend-config="resource_group_name=rg-mms-demo4-state" \
+          -backend-config="storage_account_name=statemmsdemo4state" \
+          -backend-config="container_name=tfstate" \
+          -backend-config="key=demo4.tfstate"
+        echo "BACKEND_TYPE=remote" >> $GITHUB_ENV
 
     - name: Terraform Format Check
       run: terraform fmt -check
