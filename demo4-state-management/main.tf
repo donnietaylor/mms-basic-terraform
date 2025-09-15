@@ -167,7 +167,7 @@ resource "azurerm_virtual_network" "demo4" {
 
 # Application Insights for demonstrating sensitive data in state
 resource "azurerm_application_insights" "demo4" {
-  name                = "ai-demo4-${random_string.suffix.result}"
+  name                = "ai-demo4-state"
   location            = azurerm_resource_group.demo4.location
   resource_group_name = azurerm_resource_group.demo4.name
   application_type    = "web"
