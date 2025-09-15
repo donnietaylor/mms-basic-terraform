@@ -10,11 +10,10 @@ vm_name        = "vm-demo4-state"
 vm_size        = "Standard_B2s"
 admin_username = "azureuser"
 
-# SSH Public Key for VM Access
-# Replace with your actual SSH public key
-# Generate with: ssh-keygen -t rsa -b 4096 -f ~/.ssh/demo4_key
-# Then copy the content of ~/.ssh/demo4_key.pub here
-ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7XtJyRVA+a2+kTU8o1e1qDfGhR8hVKJNyMYaXtH7wJF0tYourRealSSHKeyHere demo4-vm-key"
+# Admin Password for VM Access
+# Must be at least 12 characters with uppercase, lowercase, numeric, and special characters
+# Example: "MySecurePassword123!"
+admin_password = "ChangeMe123!@#"
 
 # Alternative regions you might want to use:
 # location = "West US 2"

@@ -43,7 +43,7 @@ output "application_insights_connection_string" {
 # VM-related outputs
 output "vm_name" {
   description = "Name of the deployed virtual machine"
-  value       = azurerm_linux_virtual_machine.demo4.name
+  value       = azurerm_windows_virtual_machine.demo4.name
 }
 
 output "vm_public_ip" {
@@ -61,9 +61,9 @@ output "vm_fqdn" {
   value       = azurerm_public_ip.demo4_vm.fqdn
 }
 
-output "vm_ssh_connection" {
-  description = "SSH connection command for the virtual machine"
-  value       = "ssh ${var.admin_username}@${azurerm_public_ip.demo4_vm.ip_address}"
+output "vm_rdp_connection" {
+  description = "RDP connection command for the virtual machine"
+  value       = "mstsc /v:${azurerm_public_ip.demo4_vm.ip_address}"
 }
 
 output "vm_web_url" {
@@ -94,8 +94,8 @@ Follow these steps to see how Terraform detects and fixes configuration drift:
    c) Add a new HTTPS rule (port 443, any source)
 
    🖥️ Virtual Machine Changes:
-   Portal: https://portal.azure.com/#@/resource${azurerm_linux_virtual_machine.demo4.id}/overview
-   📍 VM: ${azurerm_linux_virtual_machine.demo4.name}
+   Portal: https://portal.azure.com/#@/resource${azurerm_windows_virtual_machine.demo4.id}/overview
+   📍 VM: ${azurerm_windows_virtual_machine.demo4.name}
    
    Manual changes to make:
    a) Change VM size (e.g., from Standard_B2s to Standard_B1s)
@@ -118,7 +118,7 @@ Follow these steps to see how Terraform detects and fixes configuration drift:
    
    Expected drift detection output:
    ~ azurerm_network_security_group.demo4 will be updated in-place
-   ~ azurerm_linux_virtual_machine.demo4 will be updated in-place
+   ~ azurerm_windows_virtual_machine.demo4 will be updated in-place
    ~ azurerm_network_interface.demo4_vm will be updated in-place
 
 4️⃣ FIX DRIFT
@@ -131,7 +131,7 @@ Follow these steps to see how Terraform detects and fixes configuration drift:
    
    🌐 Test VM Access:
    Web: ${azurerm_public_ip.demo4_vm.ip_address != "" ? "http://${azurerm_public_ip.demo4_vm.ip_address}" : "http://<VM_PUBLIC_IP>"}
-   SSH: ssh ${var.admin_username}@${azurerm_public_ip.demo4_vm.ip_address != "" ? azurerm_public_ip.demo4_vm.ip_address : "<VM_PUBLIC_IP>"}
+   RDP: mstsc /v:${azurerm_public_ip.demo4_vm.ip_address != "" ? azurerm_public_ip.demo4_vm.ip_address : "<VM_PUBLIC_IP>"}
 
 🎯 This demonstrates how Terraform state management prevents configuration drift across multiple resource types!
 EOT

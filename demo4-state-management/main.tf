@@ -119,13 +119,13 @@ resource "azurerm_network_security_group" "demo4" {
 
   # Default rule that we'll modify manually to show drift
   security_rule {
-    name                       = "SSH"
+    name                       = "RDP"
     priority                   = 1001
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
     source_port_range          = "*"
-    destination_port_range     = "22"
+    destination_port_range     = "3389"
     source_address_prefix      = "10.0.0.0/8"
     destination_address_prefix = "*"
   }
@@ -216,23 +216,18 @@ resource "azurerm_network_interface_security_group_association" "demo4_vm" {
   network_security_group_id = azurerm_network_security_group.demo4.id
 }
 
-# Linux Virtual Machine for drift demonstration
-resource "azurerm_linux_virtual_machine" "demo4" {
-  name                            = var.vm_name
-  location                        = azurerm_resource_group.demo4.location
-  resource_group_name             = azurerm_resource_group.demo4.name
-  size                            = var.vm_size
-  admin_username                  = var.admin_username
-  disable_password_authentication = true
+# Windows Virtual Machine for drift demonstration
+resource "azurerm_windows_virtual_machine" "demo4" {
+  name                = var.vm_name
+  location            = azurerm_resource_group.demo4.location
+  resource_group_name = azurerm_resource_group.demo4.name
+  size                = var.vm_size
+  admin_username      = var.admin_username
+  admin_password      = var.admin_password
 
   network_interface_ids = [
     azurerm_network_interface.demo4_vm.id,
   ]
-
-  admin_ssh_key {
-    username   = var.admin_username
-    public_key = var.ssh_public_key
-  }
 
   os_disk {
     caching              = "ReadWrite"
@@ -240,22 +235,20 @@ resource "azurerm_linux_virtual_machine" "demo4" {
   }
 
   source_image_reference {
-    publisher = "Canonical"
-    offer     = "0001-com-ubuntu-server-jammy"
-    sku       = "22_04-lts-gen2"
+    publisher = "MicrosoftWindowsServer"
+    offer     = "WindowsServer"
+    sku       = "2022-Datacenter"
     version   = "latest"
   }
 
-  # Cloud-init script to install nginx and create a simple web page
+  # PowerShell script to install IIS and create a demo web page
   custom_data = base64encode(<<-EOF
-              #!/bin/bash
-              apt-get update
-              apt-get install -y nginx
-              systemctl start nginx
-              systemctl enable nginx
+              <powershell>
+              # Install IIS Web Server
+              Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServerRole, IIS-WebServer, IIS-CommonHttpFeatures, IIS-HttpErrors, IIS-HttpLogging, IIS-RequestMonitor, IIS-Security, IIS-RequestFiltering, IIS-StaticContent -All
               
               # Create a simple index page that shows drift detection info
-              cat > /var/www/html/index.html << 'HTML'
+              $htmlContent = @"
               <!DOCTYPE html>
               <html>
               <head>
@@ -278,8 +271,8 @@ resource "azurerm_linux_virtual_machine" "demo4" {
                       <div class="section success">
                           <h3>✅ Infrastructure Deployed Successfully!</h3>
                           <p>This virtual machine was deployed using Terraform and demonstrates state management concepts.</p>
-                          <p><strong>Hostname:</strong> <code>$(hostname)</code></p>
-                          <p><strong>OS:</strong> Ubuntu 22.04 LTS</p>
+                          <p><strong>Hostname:</strong> <code>$env:COMPUTERNAME</code></p>
+                          <p><strong>OS:</strong> Windows Server 2022</p>
                           <p><strong>Purpose:</strong> Terraform state and configuration drift demonstration</p>
                       </div>
                       
@@ -307,16 +300,20 @@ resource "azurerm_linux_virtual_machine" "demo4" {
                       </div>
                       
                       <div class="section">
-                          <p><em>This page was generated automatically during VM deployment using cloud-init.</em></p>
-                          <p><strong>Deployment time:</strong> $(date)</p>
+                          <p><em>This page was generated automatically during VM deployment using PowerShell.</em></p>
+                          <p><strong>Deployment time:</strong> $(Get-Date)</p>
                       </div>
                   </div>
               </body>
               </html>
-              HTML
+"@
               
-              # Restart nginx to ensure it's running
-              systemctl restart nginx
+              # Write the HTML content to the default IIS page
+              $htmlContent | Out-File -FilePath "C:\inetpub\wwwroot\index.html" -Encoding UTF8
+              
+              # Restart IIS to ensure it's running
+              Restart-Service -Name W3SVC -Force
+              </powershell>
               EOF
   )
 

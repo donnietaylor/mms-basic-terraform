@@ -29,13 +29,14 @@ variable "admin_username" {
   default     = "azureuser"
 }
 
-variable "ssh_public_key" {
-  description = "SSH public key for VM access"
+variable "admin_password" {
+  description = "Admin password for the virtual machine"
   type        = string
-  default     = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7XtJyRVA+a2+kTU8o1e1qDfGhR8hVKJNyMYaXtH7wJF0tU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL3VxFqU0qU2kL demo4-vm-key"
+  sensitive   = true
+  # This will need to be provided during deployment
 
   validation {
-    condition     = can(regex("^ssh-rsa|^ssh-ed25519", var.ssh_public_key))
-    error_message = "SSH public key must be in valid format (ssh-rsa or ssh-ed25519)."
+    condition     = length(var.admin_password) >= 12 && can(regex("[A-Z]", var.admin_password)) && can(regex("[a-z]", var.admin_password)) && can(regex("[0-9]", var.admin_password)) && can(regex("[^A-Za-z0-9]", var.admin_password))
+    error_message = "Admin password must be at least 12 characters long and contain uppercase, lowercase, numeric, and special characters."
   }
 }
