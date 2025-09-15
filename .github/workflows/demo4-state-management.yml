@@ -76,11 +76,6 @@ jobs:
           -var="resource_group_name=${{ github.event.inputs.resource_group_name }}" \
           -var="admin_password=${{ github.event.inputs.admin_password }}" \
           -out=tfplan
-      env:
-        ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-        ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
 
     - name: Terraform Apply
       if: github.event.inputs.action == 'deploy'
@@ -88,11 +83,6 @@ jobs:
         terraform apply -auto-approve \
           -var="resource_group_name=${{ github.event.inputs.resource_group_name }}" \
           -var="admin_password=${{ github.event.inputs.admin_password }}"
-      env:
-        ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-        ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
 
     - name: Terraform Destroy
       if: github.event.inputs.action == 'destroy'
@@ -100,11 +90,6 @@ jobs:
         terraform destroy -auto-approve \
           -var="resource_group_name=${{ github.event.inputs.resource_group_name }}" \
           -var="admin_password=${{ github.event.inputs.admin_password }}"
-      env:
-        ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-        ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
 
     - name: Display State Information
       if: github.event.inputs.action == 'deploy'
