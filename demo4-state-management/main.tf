@@ -14,10 +14,9 @@ terraform {
     }
   }
 
-  # Remote state backend - configured via GitHub Actions
-  backend "azurerm" {
-    # Values provided dynamically by GitHub Actions workflow
-  }
+  # Note: Backend configuration is handled by GitHub Actions workflow
+  # The workflow will either use local state for bootstrap or configure
+  # remote state backend dynamically via -backend-config parameters
 }
 
 provider "azurerm" {
