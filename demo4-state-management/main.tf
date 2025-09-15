@@ -125,6 +125,13 @@ import {
   id = "/subscriptions/19381250-e2a4-43b0-b620-663c2a3da3c4/resourceGroups/rg-mms-demo4-state/providers/Microsoft.Insights/components/ai-demo4-state"
 }
 
+# Import block for existing network interface (to resolve state conflicts)
+# Note: Update the subscription ID if using a different Azure subscription
+import {
+  to = azurerm_network_interface.demo4_vm
+  id = "/subscriptions/19381250-e2a4-43b0-b620-663c2a3da3c4/resourceGroups/rg-mms-demo4-state/providers/Microsoft.Network/networkInterfaces/nic-demo4-vm"
+}
+
 # Storage Container for Terraform state files
 resource "azurerm_storage_container" "state_container" {
   name                  = "tfstate"
@@ -352,6 +359,7 @@ resource "azurerm_application_insights" "demo4" {
   location            = azurerm_resource_group.demo4.location
   resource_group_name = azurerm_resource_group.demo4.name
   application_type    = "web"
+  workspace_id        = "/subscriptions/19381250-e2a4-43b0-b620-663c2a3da3c4/resourceGroups/ai_ai-demo4-state_0b3360bd-84ec-4cb8-8e28-f61173918692_managed/providers/Microsoft.OperationalInsights/workspaces/managed-ai-demo4-state-ws"
 
   tags = {
     Environment = "Demo"
