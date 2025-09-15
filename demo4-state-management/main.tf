@@ -90,10 +90,24 @@ import {
   id = "https://statemmsdemo4state.blob.core.windows.net/tfstate"
 }
 
+# Import block for existing network security group (to resolve state conflicts)
+# Note: Update the subscription ID if using a different Azure subscription
+import {
+  to = azurerm_network_security_group.demo4
+  id = "/subscriptions/19381250-e2a4-43b0-b620-663c2a3da3c4/resourceGroups/rg-mms-demo4-state/providers/Microsoft.Network/networkSecurityGroups/nsg-demo4-drift"
+}
+
+# Import block for existing virtual network (to resolve state conflicts)
+# Note: Update the subscription ID if using a different Azure subscription
+import {
+  to = azurerm_virtual_network.demo4
+  id = "/subscriptions/19381250-e2a4-43b0-b620-663c2a3da3c4/resourceGroups/rg-mms-demo4-state/providers/Microsoft.Network/virtualNetworks/vnet-demo4-state"
+}
+
 # Storage Container for Terraform state files
 resource "azurerm_storage_container" "state_container" {
-  name                  = "tfstate"
-  storage_account_name  = azurerm_storage_account.state_storage.name
+  name                 = "tfstate"
+  storage_account_id   = azurerm_storage_account.state_storage.id
   container_access_type = "private"
 }
 
