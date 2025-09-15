@@ -40,6 +40,37 @@ output "application_insights_connection_string" {
   sensitive   = true
 }
 
+# VM-related outputs
+output "vm_name" {
+  description = "Name of the deployed virtual machine"
+  value       = azurerm_linux_virtual_machine.demo4.name
+}
+
+output "vm_public_ip" {
+  description = "Public IP address of the virtual machine"
+  value       = azurerm_public_ip.demo4_vm.ip_address
+}
+
+output "vm_private_ip" {
+  description = "Private IP address of the virtual machine"
+  value       = azurerm_network_interface.demo4_vm.private_ip_address
+}
+
+output "vm_fqdn" {
+  description = "Fully qualified domain name of the virtual machine (if configured)"
+  value       = azurerm_public_ip.demo4_vm.fqdn
+}
+
+output "vm_ssh_connection" {
+  description = "SSH connection command for the virtual machine"
+  value       = "ssh ${var.admin_username}@${azurerm_public_ip.demo4_vm.ip_address}"
+}
+
+output "vm_web_url" {
+  description = "URL to access the web server running on the VM"
+  value       = "http://${azurerm_public_ip.demo4_vm.ip_address}"
+}
+
 # Instructions for demonstrating configuration drift
 output "drift_demonstration_instructions" {
   description = "Step-by-step instructions for demonstrating configuration drift"
@@ -52,17 +83,43 @@ Follow these steps to see how Terraform detects and fixes configuration drift:
    Run: terraform apply (or use GitHub Actions)
 
 2️⃣ INTRODUCE DRIFT (Make manual changes in Azure Portal)
-   🌐 Go to: https://portal.azure.com/#@/resource${azurerm_network_security_group.demo4.id}/inboundSecurityRules
-   📍 Network Security Group: ${azurerm_network_security_group.demo4.name}
+   
+   🌐 Network Security Group Changes:
+   Portal: https://portal.azure.com/#@/resource${azurerm_network_security_group.demo4.id}/inboundSecurityRules
+   📍 NSG: ${azurerm_network_security_group.demo4.name}
    
    Manual changes to make:
    a) SSH Rule: Change source from "10.0.0.0/8" to "*" (Any source)
    b) HTTP Rule: Delete this rule entirely
-   c) (Optional) Add a new custom rule
+   c) Add a new HTTPS rule (port 443, any source)
+
+   🖥️ Virtual Machine Changes:
+   Portal: https://portal.azure.com/#@/resource${azurerm_linux_virtual_machine.demo4.id}/overview
+   📍 VM: ${azurerm_linux_virtual_machine.demo4.name}
+   
+   Manual changes to make:
+   a) Change VM size (e.g., from Standard_B2s to Standard_B1s)
+   b) Add or modify tags
+   c) Change boot diagnostics settings
+   d) Modify the network interface configuration
+
+   🌐 Network Interface Changes:
+   Portal: https://portal.azure.com/#@/resource${azurerm_network_interface.demo4_vm.id}/overview
+   📍 NIC: ${azurerm_network_interface.demo4_vm.name}
+   
+   Manual changes to make:
+   a) Modify IP configuration settings
+   b) Change DNS servers
+   c) Enable/disable IP forwarding
 
 3️⃣ DETECT DRIFT
    Run: terraform plan
-   📊 You'll see Terraform detect the changes and plan to fix them
+   📊 You'll see Terraform detect the changes and plan to fix them:
+   
+   Expected drift detection output:
+   ~ azurerm_network_security_group.demo4 will be updated in-place
+   ~ azurerm_linux_virtual_machine.demo4 will be updated in-place
+   ~ azurerm_network_interface.demo4_vm will be updated in-place
 
 4️⃣ FIX DRIFT
    Run: terraform apply
@@ -71,8 +128,12 @@ Follow these steps to see how Terraform detects and fixes configuration drift:
 5️⃣ VERIFY
    Run: terraform plan again
    ✅ Should show "No changes" - infrastructure matches desired state
+   
+   🌐 Test VM Access:
+   Web: ${azurerm_public_ip.demo4_vm.ip_address != "" ? "http://${azurerm_public_ip.demo4_vm.ip_address}" : "http://<VM_PUBLIC_IP>"}
+   SSH: ssh ${var.admin_username}@${azurerm_public_ip.demo4_vm.ip_address != "" ? azurerm_public_ip.demo4_vm.ip_address : "<VM_PUBLIC_IP>"}
 
-🎯 This demonstrates how Terraform state management prevents configuration drift!
+🎯 This demonstrates how Terraform state management prevents configuration drift across multiple resource types!
 EOT
 }
 
