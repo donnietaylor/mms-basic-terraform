@@ -161,12 +161,28 @@ resource "azurerm_windows_virtual_machine" "demo4" {
   }
 }
 
+# Log Analytics Workspace for Application Insights
+resource "azurerm_log_analytics_workspace" "demo4" {
+  name                = "law-demo4"
+  location            = data.azurerm_resource_group.demo4.location
+  resource_group_name = data.azurerm_resource_group.demo4.name
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+
+  tags = {
+    Environment = "Demo"
+    Conference  = "MMSMusic"
+    Demo        = "4-State-Management"
+  }
+}
+
 # Application Insights - demonstrates sensitive data in state
 resource "azurerm_application_insights" "demo4" {
   name                = "ai-demo4"
   location            = data.azurerm_resource_group.demo4.location
   resource_group_name = data.azurerm_resource_group.demo4.name
   application_type    = "web"
+  workspace_id        = azurerm_log_analytics_workspace.demo4.id
 
   tags = {
     Environment = "Demo"

@@ -24,6 +24,12 @@ output "vm_public_ip" {
   value       = azurerm_public_ip.demo4_vm.ip_address
 }
 
+# Log Analytics Workspace ID
+output "log_analytics_workspace_id" {
+  description = "ID of the Log Analytics workspace"
+  value       = azurerm_log_analytics_workspace.demo4.id
+}
+
 # Application Insights instrumentation key (sensitive)
 output "application_insights_key" {
   description = "Application Insights instrumentation key (shows sensitive data in state)"

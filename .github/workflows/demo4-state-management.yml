@@ -52,15 +52,6 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    - name: Set Azure Credentials
-      run: |
-        {
-          echo "ARM_CLIENT_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r '.clientId')"
-          echo "ARM_CLIENT_SECRET=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r '.clientSecret')"
-          echo "ARM_SUBSCRIPTION_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r '.subscriptionId')"
-          echo "ARM_TENANT_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r '.tenantId')"
-        } >> $GITHUB_ENV
-
     - name: Terraform Init
       run: |
         # Initialize with remote backend
@@ -71,6 +62,12 @@ jobs:
           -backend-config="container_name=tfstate" \
           -backend-config="key=demo4.tfstate"
         echo "BACKEND_TYPE=remote" >> $GITHUB_ENV
+      env:
+        ARM_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
+        ARM_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
+        ARM_SUBSCRIPTION_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}
+        ARM_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
+        ARM_USE_CLI: false
 
     - name: Terraform Format Check
       run: terraform fmt -check
@@ -85,6 +82,12 @@ jobs:
           -var="resource_group_name=${{ github.event.inputs.resource_group_name }}" \
           -var="admin_password=${{ github.event.inputs.admin_password }}" \
           -out=tfplan
+      env:
+        ARM_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
+        ARM_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
+        ARM_SUBSCRIPTION_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}
+        ARM_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
+        ARM_USE_CLI: false
 
     - name: Terraform Apply
       if: github.event.inputs.action == 'deploy'
@@ -92,6 +95,12 @@ jobs:
         terraform apply -auto-approve \
           -var="resource_group_name=${{ github.event.inputs.resource_group_name }}" \
           -var="admin_password=${{ github.event.inputs.admin_password }}"
+      env:
+        ARM_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
+        ARM_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
+        ARM_SUBSCRIPTION_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}
+        ARM_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
+        ARM_USE_CLI: false
 
     - name: Terraform Destroy
       if: github.event.inputs.action == 'destroy'
@@ -99,6 +108,12 @@ jobs:
         terraform destroy -auto-approve \
           -var="resource_group_name=${{ github.event.inputs.resource_group_name }}" \
           -var="admin_password=${{ github.event.inputs.admin_password }}"
+      env:
+        ARM_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
+        ARM_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
+        ARM_SUBSCRIPTION_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}
+        ARM_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
+        ARM_USE_CLI: false
 
     - name: Display State Information
       if: github.event.inputs.action == 'deploy'
